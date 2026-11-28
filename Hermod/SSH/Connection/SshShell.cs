@@ -193,6 +193,95 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     #endregion
 
+    #region SshTerminal
+
+    /// <summary>
+    /// The terminal side of a session channel: the pseudo-terminal the client asked for before the
+    /// session started, its size now - and what the client says about it while the session runs: that
+    /// it was resized, a signal, a break.
+    /// </summary>
+    /// <remarks>
+    /// A shell and a subsystem see the same: both are conversations for as long as they run, so the
+    /// channel's requests go on being read beside them. A <c>window-change</c>, a <c>signal</c> and a
+    /// <c>break</c> reach the handler through the events below as they come; everything else is refused,
+    /// a second terminal as much as a second shell.
+    /// </remarks>
+    public sealed class SshTerminal
+    {
+
+        #region Data
+
+        private SshWindowSize? size;
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// The pseudo-terminal the client asked for, or null where it asked for none - <c>ssh -T</c>, or a
+        /// program feeding the session from a pipe, which types nothing and has no screen.
+        /// </summary>
+        public SshPty?         Pty     { get; }
+
+        /// <summary>
+        /// The size of the terminal now: what <c>pty-req</c> said, and the last <c>window-change</c> after
+        /// it. Null without a terminal.
+        /// </summary>
+        public SshWindowSize?  Size
+            => size;
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// The client's terminal has a new size.
+        /// </summary>
+        public event Action<SshWindowSize>?  WindowChanged;
+
+        /// <summary>
+        /// The client sent a signal, named as RFC 4254 §6.9 names them: "INT", "TERM", "HUP", ...
+        /// </summary>
+        public event Action<String>?         Signalled;
+
+        /// <summary>
+        /// The client sent a break (RFC 4335), for as many milliseconds as it says.
+        /// </summary>
+        public event Action<UInt32>?         BreakRequested;
+
+        #endregion
+
+        #region Constructor(s)
+
+        internal SshTerminal(SshPty? Pty)
+        {
+            this.Pty   = Pty;
+            this.size  = Pty?.Size;
+        }
+
+        #endregion
+
+
+        #region (internal) OnWindowChange(Size) / OnSignal(Name) / OnBreak(Milliseconds)
+
+        internal void OnWindowChange(SshWindowSize Size)
+        {
+            size = Size;
+            WindowChanged?.Invoke(Size);
+        }
+
+        internal void OnSignal(String Name)
+            => Signalled?.Invoke(Name);
+
+        internal void OnBreak(UInt32 Milliseconds)
+            => BreakRequested?.Invoke(Milliseconds);
+
+        #endregion
+
+    }
+
+    #endregion
+
     #region SshSessionInfo
 
     /// <summary>
@@ -260,6 +349,32 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             }
         }
 
+        /// <summary>
+        /// The OpenSSH certificate that authenticated, read from <see cref="PublicKeyBlob"/>: its key id,
+        /// serial, principals, validity, critical options and extensions - or null where a plain key, a
+        /// password or nothing with a key authenticated.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// For a server that decides by what the CA wrote into the certificate - a key id naming the
+        /// operator, an extension granting the admin console - rather than by who the account is.
+        /// </para>
+        /// <para>
+        /// The certificate is as the client presented it. That its CA is trusted, its validity holds and
+        /// its principals name the account is the authenticator's to have decided before the session
+        /// began (<see cref="SshAuthenticationPolicy.WithCertificateAuthority"/>); what it confines the
+        /// session to is already in <see cref="Restrictions"/>. It is read anew on every access.
+        /// </para>
+        /// </remarks>
+        public SshCertificate? Certificate
+
+            => PublicKeyBlob is not null &&
+               PublicKeyType is String type &&
+               SshCertificate.IsCertificateAlgorithm(type) &&
+               SshCertificate.TryParse(PublicKeyBlob, out var certificate)
+                   ? certificate
+                   : null;
+
     }
 
     #endregion
@@ -296,7 +411,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #region Data
 
         private readonly SshMuxChannel  channel;
-        private          SshWindowSize? size;
 
         #endregion
 
@@ -308,17 +422,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public SshSessionInfo                       Session      { get; }
 
         /// <summary>
+        /// The client's terminal, and what it says about it while the shell runs.
+        /// </summary>
+        public SshTerminal                          Terminal     { get; }
+
+        /// <summary>
         /// The pseudo-terminal the client asked for, or null where it asked for none - <c>ssh -T</c>, or a
         /// program feeding the session from a pipe, which types nothing and has no screen.
         /// </summary>
-        public SshPty?                              Pty          { get; }
+        public SshPty?                              Pty
+            => Terminal.Pty;
 
         /// <summary>
         /// The size of the terminal now: what <c>pty-req</c> said, and the last <c>window-change</c> after
         /// it. Null without a terminal.
         /// </summary>
         public SshWindowSize?                       Size
-            => size;
+            => Terminal.Size;
 
         /// <summary>
         /// The environment variables the client asked for with <c>env</c> before the shell started.
@@ -348,17 +468,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// The client's terminal has a new size.
         /// </summary>
-        public event Action<SshWindowSize>?  WindowChanged;
+        public event Action<SshWindowSize>?  WindowChanged
+        {
+            add    => Terminal.WindowChanged += value;
+            remove => Terminal.WindowChanged -= value;
+        }
 
         /// <summary>
         /// The client sent a signal, named as RFC 4254 §6.9 names them: "INT", "TERM", "HUP", ...
         /// </summary>
-        public event Action<String>?         Signalled;
+        public event Action<String>?         Signalled
+        {
+            add    => Terminal.Signalled += value;
+            remove => Terminal.Signalled -= value;
+        }
 
         /// <summary>
         /// The client sent a break (RFC 4335), for as many milliseconds as it says.
         /// </summary>
-        public event Action<UInt32>?         BreakRequested;
+        public event Action<UInt32>?         BreakRequested
+        {
+            add    => Terminal.BreakRequested += value;
+            remove => Terminal.BreakRequested -= value;
+        }
 
         #endregion
 
@@ -366,7 +498,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         internal SshShellContext(SshMuxChannel                        Channel,
                                  SshSessionInfo                       Session,
-                                 SshPty?                              Pty,
+                                 SshTerminal                          Terminal,
                                  IReadOnlyDictionary<String, String>  Environment,
                                  CancellationToken                    Closed,
                                  CancellationToken                    Stopping)
@@ -374,8 +506,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             this.channel      = Channel;
             this.Session      = Session;
-            this.Pty          = Pty;
-            this.size         = Pty?.Size;
+            this.Terminal     = Terminal;
             this.Environment  = Environment;
             this.Closed       = Closed;
             this.Stopping     = Stopping;
@@ -408,23 +539,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public ValueTask WriteErrorAsync(ReadOnlyMemory<Byte> Data, CancellationToken CancellationToken = default)
             => channel.SendErrorAsync(Data, CancellationToken);
-
-        #endregion
-
-
-        #region (internal) OnWindowChange(Size) / OnSignal(Name) / OnBreak(Milliseconds)
-
-        internal void OnWindowChange(SshWindowSize Size)
-        {
-            size = Size;
-            WindowChanged?.Invoke(Size);
-        }
-
-        internal void OnSignal(String Name)
-            => Signalled?.Invoke(Name);
-
-        internal void OnBreak(UInt32 Milliseconds)
-            => BreakRequested?.Invoke(Milliseconds);
 
         #endregion
 

@@ -59,6 +59,28 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                              String             Name,
                                              SshMuxChannel      Channel,
                                              CancellationToken  Closed,
-                                             CancellationToken  Stopping);
+                                             CancellationToken  Stopping)
+    {
+
+        /// <summary>
+        /// The client's terminal, where it asked for one before the subsystem (<c>ssh -t -s</c>), and what
+        /// it says about it while the subsystem runs: a resize, a signal, a break.
+        /// </summary>
+        /// <remarks>
+        /// <see cref="SshTerminal.Pty"/> is null where the client asked for no terminal - as for SFTP, or
+        /// a protocol spoken by a program. A subsystem that is a console for people, an admin console
+        /// say, draws for <see cref="SshTerminal.Size"/> and redraws on
+        /// <see cref="SshTerminal.WindowChanged"/>. As with a shell there is no terminal driver in
+        /// between: what the client types arrives as typed, and "\r\n" ends a line on its screen.
+        /// </remarks>
+        public SshTerminal  Terminal  { get; init; } = new (null);
+
+        /// <summary>
+        /// The pseudo-terminal the client asked for, or null: <see cref="SshTerminal.Pty"/> of <see cref="Terminal"/>.
+        /// </summary>
+        public SshPty?      Pty
+            => Terminal.Pty;
+
+    }
 
 }

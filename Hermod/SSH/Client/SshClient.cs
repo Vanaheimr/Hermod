@@ -680,7 +680,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
         #endregion
 
-        #region OpenSubsystem        (Name, CancellationToken)
+        #region OpenSubsystem        (Name, [Pty,] CancellationToken)
 
         /// <summary>
         /// Open a session channel and ask for the given subsystem on it - <c>ssh -s host Name</c>. The
@@ -690,7 +690,29 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
         /// <param name="Name">The subsystem, e.g. "sftp" or "ocpp@open.charging.cloud".</param>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         /// <exception cref="SshSubsystemRefusedException">The server refused the subsystem; the channel is closed again.</exception>
+        public ValueTask<SshMuxChannel> OpenSubsystem(String             Name,
+                                                      CancellationToken  CancellationToken   = default)
+
+            => OpenSubsystem(Name, null, CancellationToken);
+
+
+        /// <summary>
+        /// Open a session channel, ask for the given pseudo-terminal and then for the given subsystem on
+        /// it - <c>ssh -t -s host Name</c>, for a subsystem that is a console for people. Say that the
+        /// terminal was resized with a <c>window-change</c> request on the channel
+        /// (<see cref="SshWindowSize.ToWindowChangePayload"/>).
+        /// </summary>
+        /// <remarks>
+        /// A server that refuses the terminal - a credential with <c>no-pty</c>, say - is still asked for the
+        /// subsystem, as <c>ssh</c> carries on where it asks for a terminal only if it can
+        /// (<c>RequestTTY auto</c>); <c>ssh -t</c>, told to have one, gives up instead.
+        /// </remarks>
+        /// <param name="Name">The subsystem, e.g. "admin@open.charging.cloud".</param>
+        /// <param name="Pty">The terminal to ask for, or null for none.</param>
+        /// <param name="CancellationToken">An optional cancellation token.</param>
+        /// <exception cref="SshSubsystemRefusedException">The server refused the subsystem; the channel is closed again.</exception>
         public async ValueTask<SshMuxChannel> OpenSubsystem(String             Name,
+                                                            SshPty?            Pty,
                                                             CancellationToken  CancellationToken   = default)
         {
 
@@ -701,6 +723,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
 
             try
             {
+
+                if (Pty is not null)
+                    await channel.SendRequestAsync(
+                              "pty-req",
+                              true,
+                              Pty.ToPayload(),
+                              CancellationToken
+                          ).ConfigureAwait(false);
+
                 if (await channel.SendRequestAsync(
                               "subsystem",
                               true,

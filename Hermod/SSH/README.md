@@ -197,6 +197,15 @@ the session and the channel, and the server closes the channel once it returns.
 A credential can be confined to some subsystems with `SshSessionRestrictions.PermittedSubsystems`:
 it then gets only those, and no shell, no exec and no forced command.
 
+A subsystem can be a console for people as well as a protocol for programs: `ssh -t -s station
+admin@...`. The terminal the client asked for before it is `SshSubsystemContext.Terminal`, with
+its `Pty` and current `Size`, and a resize, a signal or a break reaches the handler as an event while
+it runs, just as for a shell. A request the subsystem cannot serve, such as a second terminal or an
+exec on its channel, is refused at once. `SshSessionInfo.Certificate` is the OpenSSH certificate that
+signed in, so a factory can grant such a console by what the CA wrote into it: an extension of its
+own, say, with the key id naming the operator. `SSHClient.OpenSubsystem(name, pty)` asks for the
+terminal first.
+
 `Messaging/` puts whole messages, text or binary, over such a subsystem: HELLO and WELCOME
 negotiate a subprotocol, and frames are length-checked before anything is allocated for them. It is
 what a WebSocket does over HTTP. `SshMessageServer` and `SshMessageClient` are the two ends, and an

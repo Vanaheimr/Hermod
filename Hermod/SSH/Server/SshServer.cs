@@ -954,7 +954,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             // Per session, where the server says so: asked only when the session asks for SFTP, so that a
             // shell on the same connection costs the factory nothing.
             if (options.SftpSessions is SftpSessionFactory sftpSessions)
-                subsystemFor = async (name, ct) => {
+                subsystemFor = async (name, _, ct) => {
 
                     if (name != "sftp" || await sftpSessions(Session, ct).ConfigureAwait(false) is not SftpSessionOptions sftp)
                         return null;
@@ -980,17 +980,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 var sftpFor = subsystemFor;
 
-                subsystemFor = async (name, ct) => {
+                subsystemFor = async (name, terminal, ct) => {
 
                     if (name == "sftp")
                         return sftpFor is not null
-                                   ? await sftpFor(name, ct).ConfigureAwait(false)
+                                   ? await sftpFor(name, terminal, ct).ConfigureAwait(false)
                                    : null;
 
                     if (await factory(Session, name, ct).ConfigureAwait(false) is not SshSubsystemHandler handler)
                         return null;
 
-                    return (channel, token) => ServeSubsystemAsync(channel, Session, name, handler, token);
+                    return (channel, token) => ServeSubsystemAsync(channel, Session, name, terminal, handler, token);
 
                 };
 
@@ -1021,7 +1021,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         #endregion
 
-        #region (private) ServeSubsystemAsync(Channel, Session, Name, Handler, CancellationToken)
+        #region (private) ServeSubsystemAsync(Channel, Session, Name, Terminal, Handler, CancellationToken)
 
         /// <summary>
         /// Serve a subsystem the factory answered for: the handler is told when the client closed the
@@ -1038,6 +1038,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         private async ValueTask ServeSubsystemAsync(SshMuxChannel        Channel,
                                                     SshSessionInfo       Session,
                                                     String               Name,
+                                                    SshTerminal          Terminal,
                                                     SshSubsystemHandler  Handler,
                                                     CancellationToken    CancellationToken)
         {
@@ -1053,7 +1054,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
             try
             {
-                await Handler(new SshSubsystemContext(Session, Name, Channel, closed.Token, stopping.Token), ended.Token).ConfigureAwait(false);
+                await Handler(new SshSubsystemContext(Session, Name, Channel, closed.Token, stopping.Token) { Terminal = Terminal }, ended.Token).ConfigureAwait(false);
                 exitStatus = 0U;
             }
             finally
