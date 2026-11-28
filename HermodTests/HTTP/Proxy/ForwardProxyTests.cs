@@ -263,7 +263,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Proxy
 
             var refused = await Assert.ThrowsAsync<SshWebSocketException>(async () => await webSocket.OpenAsync(CancellationToken));
 
-            Assert.That(refused.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ProxyAuthenticationRequired));
+            Assert.Multiple(() => {
+                Assert.That(refused.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ProxyAuthenticationRequired));
+                Assert.That(refused.FromProxy,       Is.True);
+                Assert.That(refused.InnerException,  Is.InstanceOf<HTTPProxyException>());
+                Assert.That(refused.Message,         Does.StartWith($"The proxy {proxy.URL}"));
+            });
 
         }
 
@@ -332,7 +337,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.HTTP.Proxy
 
                 var refusal = await Assert.ThrowsAsync<SshWebSocketException>(async () => await refused.OpenAsync(CancellationToken));
 
-                Assert.That(refusal.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.ProxyAuthenticationRequired));
+                Assert.That(refusal.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.ProxyAuthenticationRequired));
+                Assert.That(refusal.FromProxy,       Is.True);
 
             }
 

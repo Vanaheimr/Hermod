@@ -142,8 +142,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (connection is null || response.HTTPStatusCode != HTTPStatusCode.SwitchingProtocols)
             {
+
                 await Close().ConfigureAwait(false);
+
+                // Turned away before the server was reached: the proxy's answer, as
+                // it came - a 401 or 403 of a proxy is not one of the server's.
+                if (ProxyFailure is HTTPProxyException proxyFailure)
+                    throw new SshWebSocketException($"The proxy {Proxy} did not open a tunnel to the server: {proxyFailure.HTTPStatusCode?.ToString() ?? proxyFailure.Message}",
+                                                    proxyFailure.HTTPStatusCode ?? response.HTTPStatusCode,
+                                                    FromProxy:       true,
+                                                    InnerException:  proxyFailure);
+
                 throw new SshWebSocketException($"The server did not take the upgrade to SSH over WebSocket: {response.HTTPStatusCode}.", response.HTTPStatusCode);
+
             }
 
             if (connection.Subprotocol != SshOverWebSocket.Subprotocol)
@@ -244,20 +255,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     /// <summary>
     /// SSH over WebSocket could not be begun: the server did not take the upgrade,
-    /// or took it without the subprotocol of SSH over WebSocket.
+    /// or took it without the subprotocol of SSH over WebSocket - or a forward proxy
+    /// did not open a tunnel to the server.
     /// </summary>
     /// <param name="Message">What went wrong.</param>
-    /// <param name="HTTPStatusCode">The HTTP status the server answered with.</param>
+    /// <param name="HTTPStatusCode">The HTTP status the server, or the proxy, answered with.</param>
+    /// <param name="FromProxy">Whether the forward proxy answered, and the server was never reached.</param>
+    /// <param name="InnerException">The proxy's refusal, where it was the proxy.</param>
     public sealed class SshWebSocketException(String          Message,
-                                              HTTPStatusCode  HTTPStatusCode) : IOException(Message)
+                                              HTTPStatusCode  HTTPStatusCode,
+                                              Boolean         FromProxy        = false,
+                                              Exception?      InnerException   = null) : IOException(Message, InnerException)
     {
 
         /// <summary>
         /// The HTTP status the server answered with - 401 where the HTTP
         /// authentication was not accepted, 400 where SSH over WebSocket is not
-        /// spoken there.
+        /// spoken there -, or, where <see cref="FromProxy"/> is set, the status of
+        /// the proxy as it sent it: 407 where it was not told who is connecting,
+        /// and whatever else it answered (a 401 of a proxy that does not say 407,
+        /// a 403 for a port it does not open); 502 where it was not reached as
+        /// configured.
         /// </summary>
-        public HTTPStatusCode HTTPStatusCode { get; } = HTTPStatusCode;
+        public HTTPStatusCode  HTTPStatusCode    { get; } = HTTPStatusCode;
+
+        /// <summary>
+        /// Whether the forward proxy answered, and the server was never reached.
+        /// </summary>
+        public Boolean         FromProxy         { get; } = FromProxy;
 
     }
 

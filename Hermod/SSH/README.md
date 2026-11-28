@@ -36,7 +36,7 @@ the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 | `Forwarding/` | `NetworkAcl` and the `ForwardingPolicy` presets for `direct-tcpip` and `tcpip-forward` |
 | `Recording/` | Session recording: asciicast v2 and an SFTP transcript |
 | `Messaging/` | Whole messages over a subsystem channel: `SshMessageServer`, `SshMessageClient`, the frames - see its README |
-| `OverWebSocket/` | SSH over WebSocket: `WebSocketSshBridge`, `SshWebSocketEndpoint`, `SshWebSocketClient` |
+| `OverWebSocket/` | SSH over WebSocket: `WebSocketSshBridge`, `SshWebSocketEndpoint`, `SshWebSocketServer`, `SshWebSocketClient` |
 | `Client/` | The high-level `SSHClient` façade |
 | `Server/` | The high-level `SshServer` façade |
 
@@ -251,12 +251,23 @@ meaning; one carries at most 32 KiB, and one received may be 1 MiB at most. Both
 a received message is given to SSH before the next is read - 1 MiB may lie unread -, and a send is
 waited for before the next.
 
+`SshWebSocketServer` is the same on a WebSocket server rather than on an HTTP path. It listens on a
+port of its own, or it is handed its WebSockets by another server with `RouteBySubprotocol`. The
+second way gives one port for OCPP and SSH: a charging station reaches SSH where it reaches OCPP,
+and is told apart from OCPP by the subprotocol. Such a server knows the clients it was told of. An
+override of `AuthenticateAsync` can know those of the server it is routed from.
+
+A refusal comes back as `SshWebSocketException`, with the HTTP status it was given.
+
 Where only a forward proxy gets out, `SshWebSocketClient` is given it (`Proxy:`). The WebSocket is
 then opened in a `CONNECT` tunnel through the proxy. Who is connecting is said to the proxy in
 `Proxy-Authorization`, in the same ways as to the endpoint:
 
 - HTTP Basic or any other HTTP authentication;
 - a one-time password, which can be bound to the TLS to the proxy.
+
+A refusal by the proxy has `FromProxy` set and carries the proxy's status as it sent it. The server
+was never reached.
 
 See [Through a forward proxy](../HTTP1/WebSocket/README.md#through-a-forward-proxy).
 
