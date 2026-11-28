@@ -52,6 +52,7 @@ public sealed partial class MtaStsResolver : IDisposable
     private readonly IDNSClient _dnsClient;
     private readonly ILogger _logger;
     private readonly ConcurrentDictionary<string, MtaStsPolicy> _cache = new();
+    private readonly ConcurrentDictionary<string, MtaStsPolicy> _failed = new();
     private readonly SemaphoreSlim _fetchLock = new(5); // Max 5 concurrent fetches
 
     /// <summary>
@@ -68,6 +69,12 @@ public sealed partial class MtaStsResolver : IDisposable
     /// Which addresses the default handler may fetch a policy from - <see cref="PublicAddresses.IsPublic"/>
     /// for the internet's only - or null for any. A handler given above is taken as it is.
     /// </param>
+    /// <summary>
+    /// How long a policy id whose fetch failed is not fetched again (RFC 8461 §3.3: "implementers
+    /// SHOULD limit further attempts to a period of five minutes or longer per version ID").
+    /// </summary>
+    internal TimeSpan FailedFetchHold { get; set; } = TimeSpan.FromMinutes(5);
+
     public MtaStsResolver(IDNSClient dnsClient, ILogger logger, HttpMessageHandler? httpHandler = null, Func<System.Net.IPAddress, Boolean>? allowAddress = null)
     {
         _dnsClient = dnsClient;
@@ -132,6 +139,12 @@ public sealed partial class MtaStsResolver : IDisposable
         if (cached is not null && cached.PolicyId == policyId)
             return cached;
 
+        // §3.3: "In the case where the HTTPS GET fails, implementers SHOULD limit further attempts
+        // to a period of five minutes or longer per version ID, to avoid overwhelming
+        // resource-constrained recipients with cascading failures" - this id failed a moment ago.
+        if (RecentlyFailed(domain, policyId) is { } failed)
+            return cached ?? failed;
+
         await _fetchLock.WaitAsync(ct);
         try
         {
@@ -140,13 +153,21 @@ public sealed partial class MtaStsResolver : IDisposable
             if (_cache.TryGetValue(domain, out entry) && entry.IsFresh && entry.PolicyId == policyId)
                 return entry;
 
+            if (RecentlyFailed(domain, policyId) is { } failedMeanwhile)
+                return cached ?? failedMeanwhile;
+
             // Step 2: the policy. When it cannot be had, the cached one applies (§3.3: "if no
             // 'live' policy can be discovered ... but a valid (non-expired) policy exists in the
-            // sender's cache, the sender MUST apply that cached policy").
-            var policy = await FetchPolicyAsync(domain, policyId, ct);
+            // sender's cache, the sender MUST apply that cached policy") - or none, and why
+            // (RFC 8460 §4.3.2.2).
+            var (policy, failure) = await FetchPolicyAsync(domain, policyId, ct);
             if (policy is null)
-                return cached ?? MtaStsPolicy.None;
+            {
+                _failed[domain] = failure;
+                return cached ?? failure;
+            }
 
+            _failed.TryRemove(domain, out _);
             _cache[domain] = policy;
             return policy;
 
@@ -159,11 +180,28 @@ public sealed partial class MtaStsResolver : IDisposable
     }
 
     /// <summary>
-    /// The policy at the Policy Host, or null when there is none to be had: no 200, a redirect,
-    /// not text/plain, too large, not a policy.
+    /// The failure of a fetch of this id that is younger than <see cref="FailedFetchHold"/>, or null.
     /// </summary>
-    private async Task<MtaStsPolicy?> FetchPolicyAsync(string domain, string policyId, CancellationToken ct)
+    private MtaStsPolicy? RecentlyFailed(string domain, string policyId)
+
+        => _failed.TryGetValue(domain, out var failed) &&
+           failed.PolicyId == policyId &&
+           Timestamp.Now - failed.FetchedAt < FailedFetchHold
+               ? failed
+               : null;
+
+    /// <summary>
+    /// The policy at the Policy Host - or, when there is none to be had, why (RFC 8460 §4.3.2.2):
+    /// no 200, a redirect, unreachable, too large - "sts-policy-fetch-error"; a certificate not
+    /// valid for the Policy Host - "sts-webpki-invalid"; not text/plain, not a policy -
+    /// "sts-policy-invalid".
+    /// </summary>
+    private async Task<(MtaStsPolicy? Policy, MtaStsPolicy Failure)> FetchPolicyAsync(string domain, string policyId, CancellationToken ct)
     {
+
+        (MtaStsPolicy?, MtaStsPolicy) Failed(String FailureType, String Reason)
+            => (null, MtaStsPolicy.Unavailable(policyId, FailureType, Reason));
+
         try
         {
 
@@ -178,13 +216,13 @@ public sealed partial class MtaStsResolver : IDisposable
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 _logger.Log(LogLevel.Warning, $"MTA-STS policy fetch for {domain} failed: {(Int32) response.StatusCode} {response.StatusCode}");
-                return null;
+                return Failed("sts-policy-fetch-error", $"HTTP {(Int32) response.StatusCode}");
             }
 
             if (response.RequestMessage?.RequestUri is { } fetchedFrom && fetchedFrom != policyUrl)
             {
                 _logger.Log(LogLevel.Warning, $"MTA-STS policy for {domain} came through a redirect to {fetchedFrom}; not taken");
-                return null;
+                return Failed("sts-policy-fetch-error", "redirected");
             }
 
             // §3.2: "senders SHOULD validate that the media type is 'text/plain'".
@@ -192,23 +230,35 @@ public sealed partial class MtaStsResolver : IDisposable
             if (mediaType is not null && !mediaType.Equals("text/plain", StringComparison.OrdinalIgnoreCase))
             {
                 _logger.Log(LogLevel.Warning, $"MTA-STS policy for {domain} is {mediaType}, not text/plain; not taken");
-                return null;
+                return Failed("sts-policy-invalid", $"media type {mediaType}");
             }
 
             var policy = ParsePolicy(await response.Content.ReadAsStringAsync(ct), policyId);
 
             if (policy is null)
+            {
                 _logger.Log(LogLevel.Warning, $"MTA-STS policy for {domain} is not a valid policy");
-            else
-                _logger.Log(LogLevel.Info, $"MTA-STS policy for {domain}: mode={policy.Mode}, mx={String.Join(",", policy.MxPatterns)}, max_age={policy.MaxAge.TotalSeconds}");
+                return Failed("sts-policy-invalid", "not a valid STSv1 policy");
+            }
 
-            return policy;
+            _logger.Log(LogLevel.Info, $"MTA-STS policy for {domain}: mode={policy.Mode}, mx={String.Join(",", policy.MxPatterns)}, max_age={policy.MaxAge.TotalSeconds}");
+
+            return (policy, null!);
 
         }
         catch (Exception ex) when (ex is not OperationCanceledException || !ct.IsCancellationRequested)
         {
+
             _logger.Log(LogLevel.Warning, $"MTA-STS policy fetch for {domain} failed: {ex.Message}");
-            return null;
+
+            // §4.3.2.2: "sts-webpki-invalid: This indicates that the MTA-STS policy could not be
+            // authenticated using PKIX validation" - the TLS handshake with the Policy Host failed.
+            for (var inner = ex; inner is not null; inner = inner.InnerException)
+                if (inner is System.Security.Authentication.AuthenticationException)
+                    return Failed("sts-webpki-invalid", inner.Message);
+
+            return Failed("sts-policy-fetch-error", ex.Message);
+
         }
     }
 

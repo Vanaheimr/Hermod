@@ -166,6 +166,12 @@ public sealed class TlsRptReportService(TlsRptAggregator        aggregator,
         sb.Append("Date: ").Append(date).Append("\r\n");
         sb.Append("Message-ID: <").Append(UUIDv7.Generate().ToString("N")).Append('@').Append(options.ReportingDomain).Append(">\r\n");
         sb.Append("Auto-Submitted: auto-generated\r\n");
+        // RFC 8460 §5.3: "when sending failure reports via SMTP, Sending MTAs MUST NOT honor
+        // MTA-STS or DANE TLSA failures" - a report on a domain's broken TLS must not wait for that
+        // TLS. RFC 8689 §3: "TLS-Required: No" asks every MTA on the way to ignore "the recipient
+        // TLS policy (including MTA-STS [RFC8461] and DANE [RFC7672]) ... for example, to report
+        // a misconfigured mail server" - this one's own outbound client among them.
+        sb.Append("TLS-Required: No\r\n");
         sb.Append("MIME-Version: 1.0\r\n");
         sb.Append("Content-Type: multipart/report; report-type=\"tlsrpt\"; boundary=\"").Append(boundary).Append("\"\r\n");
         sb.Append("\r\n");

@@ -96,6 +96,8 @@ public static class TlsRptReportJson
                         if (f.ReceivingMxHostname is not null) w.WriteString("receiving-mx-hostname", f.ReceivingMxHostname);
                         if (f.ReceivingIp         is not null) w.WriteString("receiving-ip",          f.ReceivingIp);
                         w.WriteNumber("failed-session-count", f.FailedSessionCount);
+                        // §4.4: "A text field to include a TLS-related error code or error message."
+                        if (!String.IsNullOrEmpty(f.FailureReasonCode)) w.WriteString("failure-reason-code", f.FailureReasonCode);
                         w.WriteEndObject();
                     }
                     w.WriteEndArray();

@@ -63,6 +63,7 @@ public sealed class TlsRptAggregator
         public String?  SendingMtaIp        { get; set; }
         public String?  ReceivingMxHostname { get; set; }
         public String?  ReceivingIp         { get; set; }
+        public String?  FailureReasonCode   { get; set; }   // missing in older state files
         public Int64    Count               { get; set; }
     }
 
@@ -127,7 +128,9 @@ public sealed class TlsRptAggregator
             else
             {
                 var resultType = String.IsNullOrEmpty(ev.FailureType) ? "validation-failure" : ev.FailureType!;
-                var key        = String.Join('|', resultType, ev.SendingIp, ev.MxHost, ev.ReceivingIp);
+                // RFC 8460 §4.4: one failure-details entry per result type, IPs, MX host and
+                // failure-reason-code.
+                var key        = String.Join('|', resultType, ev.SendingIp, ev.MxHost, ev.ReceivingIp, ev.FailureReasonCode);
 
                 if (bucket.Failures.TryGetValue(key, out var fail))
                     fail.Count++;
@@ -138,6 +141,7 @@ public sealed class TlsRptAggregator
                         SendingMtaIp        = ev.SendingIp,
                         ReceivingMxHostname = ev.MxHost?.TrimEnd('.'),
                         ReceivingIp         = ev.ReceivingIp,
+                        FailureReasonCode   = ev.FailureReasonCode,
                         Count               = 1
                     };
             }
@@ -178,7 +182,7 @@ public sealed class TlsRptAggregator
                         MxHosts:      p.MxHosts.OrderBy(h => h, StringComparer.Ordinal).ToList(),
                         SuccessCount: p.Success,
                         Failures:     p.Failures.Values.Select(f => new TlsRptFailureRow(
-                                          f.ResultType, f.SendingMtaIp, f.ReceivingMxHostname, f.ReceivingIp, f.Count)).ToList(),
+                                          f.ResultType, f.SendingMtaIp, f.ReceivingMxHostname, f.ReceivingIp, f.Count, f.FailureReasonCode)).ToList(),
                         PolicyString: p.PolicyString ?? []))
                     .ToList();
 
