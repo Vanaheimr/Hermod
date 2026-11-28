@@ -253,7 +253,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                 }
                 catch (SshMessageProtocolException exception)
                 {
-                    await RefuseAsync(channel, SshMessageRefusal.InvalidHello, exception.Message).ConfigureAwait(false);
+                    await RefuseFirstAsync(channel, exception).ConfigureAwait(false);
                     return;
                 }
                 catch (Exception)
@@ -471,7 +471,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                        }
                        catch (SshMessageProtocolException exception)
                        {
-                           await RefuseAsync(context.Channel, SshMessageRefusal.InvalidHello, exception.Message).ConfigureAwait(false);
+                           await RefuseFirstAsync(context.Channel, exception).ConfigureAwait(false);
                            return;
                        }
                        catch (Exception)
@@ -543,6 +543,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             catch
             { }
         }
+
+        #endregion
+
+        #region (private static) RefuseFirstAsync(Channel, Exception)
+
+        /// <summary>
+        /// Refuse a client whose first frame could not be read as one: <c>hello-expected</c> where its
+        /// header named another kind - a TEXT, say, which the first read takes no payload of, since
+        /// nothing but a HELLO may come first - and <c>invalid-hello</c> where it was a HELLO, or not even
+        /// its header could be read.
+        /// </summary>
+        private static Task RefuseFirstAsync(SshMuxChannel                Channel,
+                                             SshMessageProtocolException  Exception)
+
+            => Exception.FrameType is SshMessageFrameType kind && kind != SshMessageFrameType.Hello
+                   ? RefuseAsync(Channel, SshMessageRefusal.HelloExpected, $"Expected HELLO, not a frame of kind 0x{(Byte) kind:x2}.")
+                   : RefuseAsync(Channel, SshMessageRefusal.InvalidHello,  Exception.Message);
 
         #endregion
 
