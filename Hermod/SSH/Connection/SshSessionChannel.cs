@@ -30,8 +30,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// session's channel, or null to refuse it.
     /// </summary>
     /// <param name="Name">The subsystem, as the client named it.</param>
+    /// <param name="Terminal">The client's terminal, where it asked for one before the subsystem, and what it
+    /// says about it while the subsystem runs - for a subsystem that is a console for people.</param>
     /// <param name="CancellationToken">Fires when the session ends while the answer is being made.</param>
     public delegate ValueTask<Func<SshMuxChannel, CancellationToken, ValueTask>?> SshSubsystemResolver(String             Name,
+                                                                                                        SshTerminal        Terminal,
                                                                                                         CancellationToken  CancellationToken);
 
 
@@ -116,9 +119,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <remarks>
         /// <para>
-        /// A shell is a conversation, so the channel's requests go on being read while it runs: a
-        /// <c>window-change</c>, a <c>signal</c> and a <c>break</c> reach it as they come, and every
-        /// other request is answered with failure rather than left waiting until the shell ends.
+        /// A shell is a conversation, and so is a subsystem, so the channel's requests go on being read
+        /// while either runs: a <c>window-change</c>, a <c>signal</c> and a <c>break</c> reach it as they
+        /// come (<see cref="SshTerminal"/>), and every other request is answered with failure rather than
+        /// left waiting until it ends. A subsystem is given the terminal asked for before it, if any.
         /// </para>
         /// <para>
         /// A credential confined to one command (<c>force-command</c>) is never given a shell: its shell
@@ -208,6 +212,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
                     Func<SshMuxChannel, CancellationToken, ValueTask>? serve = null;
 
+                    // The terminal the client asked for before the subsystem, if any: a subsystem may be a
+                    // console for people as much as a protocol for programs (ssh -t -s).
+                    var terminal = new SshTerminal(pty);
+
                     if (Subsystems is not null && Subsystems.TryGetValue(name, out var served))
                         serve = served;
 
@@ -215,7 +223,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     {
                         try
                         {
-                            serve = await SubsystemFor(name, CancellationToken).ConfigureAwait(false);
+                            serve = await SubsystemFor(name, terminal, CancellationToken).ConfigureAwait(false);
                         }
                         catch (Exception exception) when (exception is not OperationCanceledException || !CancellationToken.IsCancellationRequested)
                         {
@@ -228,7 +236,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     {
                         await EmitAsync(AuditSink, new SubsystemRequestedEvent(DateTimeOffset.UtcNow, name), CancellationToken).ConfigureAwait(false);
                         if (request.Value.WantReply) await Channel.ReplyAsync(true, CancellationToken).ConfigureAwait(false);
-                        await serve(Channel, CancellationToken).ConfigureAwait(false);
+
+                        // As for a shell, the channel's requests go on being read while the subsystem runs:
+                        // a resize reaches a console as it comes, and a request it cannot serve is refused
+                        // rather than left unanswered until the subsystem ends.
+                        var running = Task.Run(async () => await serve(Channel, CancellationToken).ConfigureAwait(false));
+
+                        await ReadRequestsBesideAsync(Channel, terminal, running, CancellationToken).ConfigureAwait(false);
+                        await running.ConfigureAwait(false);
                         return;
                     }
                     await EmitAsync(AuditSink, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "subsystem", name, reason), CancellationToken).ConfigureAwait(false);
@@ -485,17 +500,62 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     try { closed.Cancel(); } catch (ObjectDisposedException) { }
                 }, TaskScheduler.Default);
 
-            var context   = new SshShellContext(Channel, Session, Pty, Environment, closed.Token, Stopping);
+            var terminal  = new SshTerminal(Pty);
+            var context   = new SshShellContext(Channel, Session, terminal, Environment, closed.Token, Stopping);
 
             // On a task of its own, so that a handler that does not await anything for a while does not
-            // keep the requests below from being read.
+            // keep the requests from being read.
             var running   = Task.Run(async () => await Handler(context, ended.Token).ConfigureAwait(false));
+
+            await ReadRequestsBesideAsync(Channel, terminal, running, CancellationToken).ConfigureAwait(false);
+
+            Int32 exit;
+
+            try
+            {
+                exit = await running.ConfigureAwait(false);
+            }
+            catch
+            {
+                exit = 255;
+            }
+
+            if (closed.IsCancellationRequested)
+                return;
+
+            try
+            {
+                await Channel.SendRequestAsync("exit-status", false, EncodeUInt32((UInt32) exit), CancellationToken).ConfigureAwait(false);
+                await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
+            }
+            catch
+            {
+                // The client went while it was being told.
+            }
+
+        }
+
+        #endregion
+
+        #region (private) ReadRequestsBesideAsync(Channel, Terminal, Running, CancellationToken)
+
+        /// <summary>
+        /// Read the channel's requests while a shell or a subsystem runs, until it ends or the channel is
+        /// closed: a <c>window-change</c>, a <c>signal</c> and a <c>break</c> go to the terminal as they
+        /// come, everything else is refused - a second pty, a second shell.
+        /// </summary>
+        private static async Task ReadRequestsBesideAsync(SshMuxChannel      Channel,
+                                                          SshTerminal        Terminal,
+                                                          Task               Running,
+                                                          CancellationToken  CancellationToken)
+        {
+
             var requested = Channel.ReadRequestAsync(CancellationToken).AsTask();
 
             while (true)
             {
 
-                if (await Task.WhenAny(running, requested).ConfigureAwait(false) == running)
+                if (await Task.WhenAny(Running, requested).ConfigureAwait(false) == Running)
                     break;
 
                 SshChannelRequest? request;
@@ -521,17 +581,17 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     {
 
                         case "window-change":
-                            context.OnWindowChange(SshWindowSize.ParseWindowChange(next.Data));
+                            Terminal.OnWindowChange(SshWindowSize.ParseWindowChange(next.Data));
                             handled = true;
                             break;
 
                         case "signal":
-                            context.OnSignal(ReadString(next.Data));
+                            Terminal.OnSignal(ReadString(next.Data));
                             handled = true;
                             break;
 
                         case "break":
-                            context.OnBreak(ReadUInt32(next.Data));
+                            Terminal.OnBreak(ReadUInt32(next.Data));
                             handled = true;
                             break;
 
@@ -554,30 +614,6 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             // A read still waiting ends with the channel; nothing waits for it, and nothing it ends with
             // is anybody's business.
             _ = requested.ContinueWith(task => _ = task.Exception, TaskContinuationOptions.OnlyOnFaulted);
-
-            Int32 exit;
-
-            try
-            {
-                exit = await running.ConfigureAwait(false);
-            }
-            catch
-            {
-                exit = 255;
-            }
-
-            if (closed.IsCancellationRequested)
-                return;
-
-            try
-            {
-                await Channel.SendRequestAsync("exit-status", false, EncodeUInt32((UInt32) exit), CancellationToken).ConfigureAwait(false);
-                await Channel.CloseAsync(CancellationToken).ConfigureAwait(false);
-            }
-            catch
-            {
-                // The client went while it was being told.
-            }
 
         }
 
