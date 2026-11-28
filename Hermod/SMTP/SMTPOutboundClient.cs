@@ -584,13 +584,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 var receivingIp = (client.Client.RemoteEndPoint as System.Net.IPEndPoint)?.Address.ToString();
                 var sendingIp   = (client.Client.LocalEndPoint  as System.Net.IPEndPoint)?.Address.ToString();
 
-                void RecordTls(Boolean success, String? failureType)
+                void RecordTls(Boolean success, String? failureType, String? failureReason = null)
                 {
                     if (_tlsRptRecorder is null)
                         return;
+                    // RFC 8460 §4.3.2.2: a policy the TXT record announced and that could not be had -
+                    // "sts-policy-fetch-error", "sts-policy-invalid" - is a failure under MTA-STS,
+                    // whatever came of the session without it; not "no-policy-found" and a success.
+                    var stsUnavailable = !daneActive && stsMode == MtaStsMode.None && stsPolicy.FailureType is not null;
+                    if (stsUnavailable)
+                    {
+                        success        = false;
+                        failureType    = stsPolicy.FailureType;
+                        failureReason  = stsPolicy.FailureReason;
+                    }
                     var policyType = daneActive
                                          ? TlsRptPolicyType.Tlsa
-                                         : stsMode is MtaStsMode.Enforce or MtaStsMode.Testing
+                                         : stsMode is MtaStsMode.Enforce or MtaStsMode.Testing || stsUnavailable
                                              ? TlsRptPolicyType.Sts
                                              : TlsRptPolicyType.NoPolicyFound;
                     // RFC 8460 §4.5: the policy applied - the TLSA records, "a space-separated list of
@@ -600,7 +610,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         TlsRptPolicyType.Sts   => stsPolicy.Lines,
                         _                      => []
                     };
-                    _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType, policyString));
+                    _tlsRptRecorder(new TlsRptEvent(policyDomain, policyType, mxHost, receivingIp, sendingIp, success, failureType, policyString,
+                                                    success ? null : failureReason));
                 }
 
                 // RFC 8461 §5: "testing" - "Sending MTAs that also implement the TLSRPT specification
@@ -674,11 +685,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                             // of RFC 8460 §4.3.1 - whether or not it is accepted all the same.
                             String? certificateFailure = null;
 
+                            // And what exactly, as the "failure-reason-code" of RFC 8460 §4.4, which
+                            // a certificate-not-trusted and a validation-failure SHOULD have (§4.3.1).
+                            String? certificateReason  = null;
+
                             var sslStream = new SslStream(connection.Stream, false,
                                 (_, cert, chain, errors) => {
 
                                     if (daneActive)
-                                        return ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain);
+                                    {
+                                        var matched = ValidateDaneCertificate(mxHost, daneRecords, referenceIdentifiers, cert, chain);
+                                        if (!matched)
+                                            certificateReason = cert is null
+                                                                    ? "no certificate presented"
+                                                                    : $"the certificate matches none of the {daneRecords.Count} usable TLSA record(s)";
+                                        return matched;
+                                    }
 
                                     // Secure TLSA records, none usable: encrypted, not authenticated (§2.2) -
                                     // unless the message requires TLS: RFC 8689 §4.2.1, "authenticate the
@@ -692,6 +714,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                     certificateFailure = _config.RemoteCertificateValidator is not null
                                                              ? accepted ? null : CertificateFailure(errors, chain) ?? "certificate-not-trusted"
                                                              : CertificateFailure(errors, chain);
+
+                                    certificateReason  = certificateFailure is not null
+                                                             ? CertificateFailureReason(errors, chain) ?? "rejected by the certificate validator"
+                                                             : null;
 
                                     return accepted;
 
@@ -722,7 +748,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                 // A rejected/mismatched certificate under enforced TLS (including a DANE
                                 // TLSA mismatch) must not be bypassed: defer instead of downgrading.
                                 var why = daneActive ? "DANE TLSA mismatch" : "certificate validation failed";
-                                RecordTls(false, daneActive ? "validation-failure" : certificateFailure ?? "certificate-not-trusted");
+                                RecordTls(false, daneActive ? "validation-failure" : certificateFailure ?? "certificate-not-trusted", certificateReason ?? ex.Message);
 
                                 // RFC 8689 §4.2.1: "Unable to establish TLS-protected SMTP session: 5.7.10
                                 // Encryption needed" - this host; another MX host may do.
@@ -746,10 +772,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                                                     ? certificateFailure ?? (stsPolicy.MatchesMx(mxHost) ? null : "validation-failure")
                                                     : null;
 
+                            var policyReason  = policyFailure is null
+                                                    ? null
+                                                    : certificateFailure is not null
+                                                          ? certificateReason
+                                                          : $"MX host {mxHost} not named by the policy";
+
                             if (policyFailure is not null)
                                 _logger.Log(LogLevel.Warning, $"MTA-STS policy of {policyDomain} (testing) fails for {mxHost}: {policyFailure}; delivering all the same");
 
-                            RecordTls(policyFailure is null, policyFailure);
+                            RecordTls(policyFailure is null, policyFailure, policyReason);
 
                             // Re-send EHLO after TLS
                             await connection.WriteLineAsync($"EHLO {EhloName}", ct);
@@ -1471,6 +1503,48 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 return "certificate-host-mismatch";
 
             return "certificate-not-trusted";
+
+        }
+
+        /// <summary>
+        /// What the platform found wrong with a certificate, as the "failure-reason-code" of RFC
+        /// 8460 §4.4 - "an error code or error text" (§4.3.3): the status of its chain, such as
+        /// "UntrustedRoot" or "NotTimeValid", or "RemoteCertificateNameMismatch" - or null when
+        /// nothing is.
+        /// </summary>
+        private static String? CertificateFailureReason(SslPolicyErrors  sslPolicyErrors,
+                                                        X509Chain?       chain)
+        {
+
+            if (sslPolicyErrors == SslPolicyErrors.None)
+                return null;
+
+            var reasons = new List<String>();
+
+            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNotAvailable))
+                reasons.Add(nameof(SslPolicyErrors.RemoteCertificateNotAvailable));
+
+            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateNameMismatch))
+                reasons.Add(nameof(SslPolicyErrors.RemoteCertificateNameMismatch));
+
+            if (sslPolicyErrors.HasFlag(SslPolicyErrors.RemoteCertificateChainErrors))
+            {
+
+                var status = chain?.ChainStatus.
+                                    Select  (element => element.Status).
+                                    Where   (flags   => flags != X509ChainStatusFlags.NoError).
+                                    Select  (flags   => flags.ToString()).
+                                    Distinct().
+                                    ToList() ?? [];
+
+                if (status.Count > 0)
+                    reasons.AddRange(status);
+                else
+                    reasons.Add(nameof(SslPolicyErrors.RemoteCertificateChainErrors));
+
+            }
+
+            return String.Join(", ", reasons);
 
         }
 

@@ -36,4 +36,5 @@ public sealed record TlsRptFailureRow(String   ResultType,
                                       String?  SendingMtaIp,
                                       String?  ReceivingMxHostname,
                                       String?  ReceivingIp,
-                                      Int64    FailedSessionCount);
+                                      Int64    FailedSessionCount,
+                                      String?  FailureReasonCode   = null);

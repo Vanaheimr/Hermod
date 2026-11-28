@@ -40,6 +40,20 @@ public sealed partial record MtaStsPolicy
     /// "policy-string" of a TLS-RPT report (RFC 8460 §4.5).
     /// </summary>
     public IReadOnlyList<String> Lines { get; init; } = [];
+
+    /// <summary>
+    /// Why the policy a TXT record announced could not be had, as a result type of RFC 8460
+    /// §4.3.2.2 - "sts-policy-fetch-error", "sts-policy-invalid", "sts-webpki-invalid" - or null
+    /// for a policy that was had, and for none announced. A policy that could not be had applies
+    /// as none (RFC 8461 §3.3).
+    /// </summary>
+    public String?         FailureType    { get; init; }
+
+    /// <summary>
+    /// What went wrong, in a few words: the "failure-reason-code" of a TLS report (RFC 8460 §4.4).
+    /// </summary>
+    public String?         FailureReason  { get; init; }
+
     public Boolean         IsValid
         => Mode != MtaStsMode.None && IsFresh;
 
@@ -83,4 +97,10 @@ public sealed partial record MtaStsPolicy
     }
 
     public static MtaStsPolicy None => new() { Mode = MtaStsMode.None };
+
+    /// <summary>
+    /// The policy of the given id that could not be had: none, and why.
+    /// </summary>
+    public static MtaStsPolicy Unavailable(String PolicyId, String FailureType, String FailureReason)
+        => new() { Mode = MtaStsMode.None, PolicyId = PolicyId, FailureType = FailureType, FailureReason = FailureReason };
 }

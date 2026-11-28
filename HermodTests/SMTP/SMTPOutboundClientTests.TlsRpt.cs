@@ -20,6 +20,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
+using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -36,7 +37,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// <summary>
     /// What the relay records for TLS-RPT (RFC 8460) about a session: through the smart host
     /// "localhost", whose MTA-STS policy (RFC 8461 §3.4) the test serves, to the recipient
-    /// domain next.example. The findings T-2 to T-4 of SMTPConformanceTests.
+    /// domain next.example. The findings T-2 to T-4, T-8 and T-9 of SMTPConformanceTests.
     /// </summary>
     public partial class SMTPOutboundClientTests
     {
@@ -70,10 +71,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
         /// <param name="Certificate">The certificate of the smart host; null: it offers no STARTTLS.</param>
         /// <param name="Mx">The mx of the policy.</param>
         /// <param name="TrustCertificate">Trust any certificate, through a validator of the operator's own.</param>
+        /// <param name="PolicyStatus">What the policy host answers.</param>
+        /// <param name="Policy">The policy it serves, when not the one of the mode and mx above.</param>
         private static async Task<(SendResult Result, TlsRptEvent[] Events)> SendUnderPolicy(String?            Mode,
                                                                                             X509Certificate2?  Certificate,
                                                                                             String             Mx                = "localhost",
-                                                                                            Boolean            TrustCertificate  = false)
+                                                                                            Boolean            TrustCertificate  = false,
+                                                                                            HttpStatusCode     PolicyStatus      = HttpStatusCode.OK,
+                                                                                            String?            Policy            = null)
         {
 
             using var nextHop = new NextHop(Certificate: Certificate);
@@ -87,7 +92,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                                                     ConnectTimeoutMs            = 3_000,
                                                     ReadTimeoutMs               = 5_000,
                                                     WriteTimeoutMs              = 3_000,
-                                                    MtaStsHttpHandler           = new PolicyHost { Domain = "localhost", Policy = StsPolicyText(Mode ?? "none", Mx) },
+                                                    MtaStsHttpHandler           = new PolicyHost { Domain = "localhost", Policy = Policy ?? StsPolicyText(Mode ?? "none", Mx), Status = PolicyStatus },
                                                     RemoteCertificateValidator  = TrustCertificate ? (_, _, _, _) => true : null
                                                 },
                                                 null,
@@ -274,6 +279,104 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(events.Select(e => e.PolicyType),       Is.EqualTo(new[] { TlsRptPolicyType.Tlsa }));
                 Assert.That(events.Single().PolicyString,           Is.EqualTo(new[] { $"3 1 1 {Convert.ToHexString(tlsa.CertificateAssociationData)}" }));
             });
+
+        }
+
+        #endregion
+
+        #region T-8: an MTA-STS policy that could not be had
+
+        [TestCase(HttpStatusCode.InternalServerError, null,                                                  "sts-policy-fetch-error", "HTTP 500",                 TestName = "T-8: a policy host that answers 500 is reported as sts-policy-fetch-error")]
+        [TestCase(HttpStatusCode.NotFound,            null,                                                  "sts-policy-fetch-error", "HTTP 404",                 TestName = "T-8: a policy host that answers 404 is reported as sts-policy-fetch-error")]
+        [TestCase(HttpStatusCode.OK,                  "version: STSv1\r\nmode: enforce\r\nmx: localhost\r\n", "sts-policy-invalid",     "not a valid STSv1 policy", TestName = "T-8: a policy without max_age is reported as sts-policy-invalid")]
+        [Description("RFC 8460 §4.3.2.2: \"sts-policy-fetch-error: This indicates a failure to retrieve an MTA-STS policy\"; \"sts-policy-invalid: This indicates a validation error for the overall MTA-STS Policy\" - the TXT record announces a policy that cannot be had; the mail goes as without a policy")]
+        public async Task An_MTA_STS_policy_that_could_not_be_had_is_reported(HttpStatusCode Status, String? Policy, String ResultType, String Reason)
+        {
+
+            var (result, events) = await SendUnderPolicy("enforce", SelfSignedLocalhost(), TrustCertificate: true, PolicyStatus: Status, Policy: Policy);
+
+            Assert.Multiple(() => {
+                Assert.That(result.Status,                                                                     Is.EqualTo(SendStatus.Success),                                  Explain(result, events));
+                Assert.That(events.Select(e => (e.PolicyType, e.Success, e.FailureType, e.FailureReasonCode)), Is.EqualTo(new[] { (TlsRptPolicyType.Sts, false, (String?) ResultType, (String?) Reason) }), Explain(result, events));
+                Assert.That(events.Single().PolicyString,                                                      Is.Empty,                                                        "no policy was applied");
+            });
+
+        }
+
+        #endregion
+
+        #region T-9: the failure-reason-code
+
+        [Test(Description = "T-9 - RFC 8460 §4.3.1: certificate-not-trusted - \"When using this declaration, the reporting MTA SHOULD utilize the \"failure-reason-code\" to provide more information\" - the status of the chain")]
+        public async Task Under_enforce_an_untrusted_certificate_has_a_failure_reason_code()
+        {
+
+            var (result, events) = await SendUnderPolicy("enforce", SelfSignedLocalhost());
+
+            Assert.Multiple(() => {
+                Assert.That(events.Select(e => e.FailureType),      Is.EqualTo(new[] { "certificate-not-trusted" }), Explain(result, events));
+                Assert.That(events.Single().FailureReasonCode,      Is.Not.Null.And.Not.Empty,                       Explain(result, events));
+            });
+
+        }
+
+
+        [Test(Description = "T-9 - RFC 8460 §4.4: \"failure-reason-code\": \"A text field to include a TLS-related error code or error message\" - for an expired certificate the status of its chain")]
+        public async Task In_testing_mode_an_expired_certificate_has_its_chain_status_as_failure_reason_code()
+        {
+
+            var (result, events) = await SendUnderPolicy("testing", SelfSignedLocalhost(Expired: true));
+
+            Assert.Multiple(() => {
+                Assert.That(events.Select(e => e.FailureType),      Is.EqualTo(new[] { "certificate-expired" }),     Explain(result, events));
+                Assert.That(events.Single().FailureReasonCode,      Does.Contain("NotTimeValid"),                    Explain(result, events));
+            });
+
+        }
+
+
+        [Test(Description = "T-9 - RFC 8460 §4.3.1: validation-failure - the reporting MTA SHOULD utilize the \"failure-reason-code\" - an MX host the testing policy does not name")]
+        public async Task In_testing_mode_an_mx_host_the_policy_does_not_name_has_a_failure_reason_code()
+        {
+
+            var (result, events) = await SendUnderPolicy("testing", SelfSignedLocalhost(), Mx: "mail.next.example", TrustCertificate: true);
+
+            Assert.Multiple(() => {
+                Assert.That(events.Select(e => e.FailureType),      Is.EqualTo(new[] { "validation-failure" }),                  Explain(result, events));
+                Assert.That(events.Single().FailureReasonCode,      Is.EqualTo("MX host localhost not named by the policy"),     Explain(result, events));
+            });
+
+        }
+
+
+        [Test(Description = "T-9 - RFC 8460 §4.3.1: validation-failure under DANE - the certificate matches none of the TLSA records, and the failure-reason-code says so")]
+        public async Task Under_DANE_a_certificate_no_TLSA_record_matches_has_a_failure_reason_code()
+        {
+
+            var (_, server)   = IssuedBy("whatever.example");
+            var (_, another)  = IssuedBy("another.example");
+            using var nextHop = new NextHop(Certificate: server);
+            using var dns     = new SignedDns();
+            dns.Answer($"_{nextHop.Port}._tcp.localhost", DNSResourceRecordTypes.TLSA, true, Tlsa(nextHop.Port, TLSA_CertificateUsage.DANE_EE, another));
+
+            var events = new ConcurrentQueue<TlsRptEvent>();
+            var result = await SendWithDane(nextHop, dns, events.Enqueue);
+
+            Assert.Multiple(() => {
+                Assert.That(result.Status,                                          Is.EqualTo(SendStatus.TempFail),                                                    result.ResponseText);
+                Assert.That(events.Select(e => (e.FailureType, e.FailureReasonCode)), Is.EqualTo(new[] { ("validation-failure", "the certificate matches none of the 1 usable TLSA record(s)") }));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 8460 §4.4: the failure-reason-code belongs to a failure - a session that succeeds has none; a guard for T-9")]
+        public async Task A_successful_session_has_no_failure_reason_code()
+        {
+
+            var (result, events) = await SendUnderPolicy("testing", SelfSignedLocalhost(), TrustCertificate: true);
+
+            Assert.That(events.Select(e => (e.Success, e.FailureReasonCode)), Is.EqualTo(new[] { (true, (String?) null) }), Explain(result, events));
 
         }
 

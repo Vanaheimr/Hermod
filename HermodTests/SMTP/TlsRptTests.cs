@@ -38,9 +38,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
     /// <summary>
     /// SMTP TLS Reporting (RFC 8460) as the relay reports: which TXT record names the destinations
-    /// (§3), and the policy each report names (§4.4) - through <see cref="TlsRptResolver"/>,
-    /// <see cref="TlsRptAggregator"/>, <see cref="TlsRptReportService"/> and <see cref="TlsRptReportJson"/>.
-    /// The findings T-1 and T-2 of SMTPConformanceTests.
+    /// (§3), the policy each report names and the failure-reason-code (§4.4), and the report on its
+    /// way (§5.3) - through <see cref="TlsRptResolver"/>, <see cref="TlsRptAggregator"/>,
+    /// <see cref="TlsRptReportService"/> and <see cref="TlsRptReportJson"/>.
+    /// The findings T-1, T-2, T-5 to T-7 and T-9 of SMTPConformanceTests.
     /// </summary>
     [TestFixture]
     public class TlsRptTests
@@ -320,6 +321,86 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Assert.That(policy.Failures.Single().FailedSessionCount,           Is.EqualTo(1));
                 Assert.That(json.GetProperty("policies")[0].GetProperty("policy").GetProperty("policy-string").GetArrayLength(), Is.Zero);
             });
+
+        }
+
+        #endregion
+
+
+        #region T-7: the report on its way
+
+        [Test(Description = "T-7 - RFC 8460 §5.3: \"when sending failure reports via SMTP, Sending MTAs MUST NOT honor MTA-STS or DANE TLSA failures\" - the report carries \"TLS-Required: No\" (RFC 8689 §3), once, and the outbound client takes it so")]
+        public async Task A_report_mail_sets_the_TLS_policies_of_its_next_hop_aside()
+        {
+
+            var (service, queue) = Reporter("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test");
+
+            service.Record(Session(false, "certificate-expired"));
+            await service.GenerateAndSendAsync(CancellationToken.None);
+
+            var content = queue.Enqueued.Single().MessageContent;
+            var header  = content[..content.IndexOf("\r\n\r\n", StringComparison.Ordinal)];
+
+            Assert.Multiple(() => {
+                Assert.That(header.Split("\r\n").Count(line => line.StartsWith("TLS-Required:", StringComparison.OrdinalIgnoreCase)), Is.EqualTo(1));
+                Assert.That(header,                                                                                                  Does.Contain("\r\nTLS-Required: No\r\n"));
+                Assert.That(SMTPOutboundClient.TlsRequiredNo(content),                                                               Is.True);
+            });
+
+        }
+
+        #endregion
+
+
+        #region T-9: the failure-reason-code
+
+        [Test(Description = "T-9 - RFC 8460 §4.4: \"failure-reason-code\": \"A text field to include a TLS-related error code or error message\" - the one of the session")]
+        public async Task A_failure_reason_code_is_in_the_failure_details()
+        {
+
+            var (service, queue) = Reporter("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test");
+
+            service.Record(Session(false, "certificate-not-trusted") with { FailureReasonCode = "UntrustedRoot" });
+            await service.GenerateAndSendAsync(CancellationToken.None);
+
+            var detail = Json(queue.Enqueued.Single()).GetProperty("policies")[0].GetProperty("failure-details")[0];
+
+            Assert.Multiple(() => {
+                Assert.That(detail.GetProperty("result-type").GetString(),          Is.EqualTo("certificate-not-trusted"));
+                Assert.That(detail.GetProperty("failure-reason-code").GetString(),  Is.EqualTo("UntrustedRoot"));
+            });
+
+        }
+
+
+        [Test(Description = "T-9 - RFC 8460 §4.4: failures of other reasons are failure-details of their own, each with its count")]
+        public void Failures_of_other_reason_codes_are_entries_of_their_own()
+        {
+
+            var aggregator = new TlsRptAggregator(StatePath, new QuietLogger());
+
+            aggregator.Record(Session(false, "certificate-not-trusted") with { FailureReasonCode = "UntrustedRoot" });
+            aggregator.Record(Session(false, "certificate-not-trusted") with { FailureReasonCode = "UntrustedRoot" });
+            aggregator.Record(Session(false, "certificate-not-trusted") with { FailureReasonCode = "PartialChain" });
+
+            Assert.That(aggregator.Drain().Single().Policies.Single().Failures.Select(failure => (failure.FailureReasonCode, failure.FailedSessionCount)),
+                        Is.EquivalentTo(new[] { ((String?) "UntrustedRoot", 2L), ("PartialChain", 1L) }));
+
+        }
+
+
+        [Test(Description = "RFC 8460 §4.4: the failure-reason-code is optional - a failure without one has no such field; a guard for T-9")]
+        public async Task A_failure_without_a_reason_code_has_no_failure_reason_code_field()
+        {
+
+            var (service, queue) = Reporter("v=TLSRPTv1; rua=mailto:tlsrpt@policy.test");
+
+            service.Record(Session(false, "starttls-not-supported"));
+            await service.GenerateAndSendAsync(CancellationToken.None);
+
+            var detail = Json(queue.Enqueued.Single()).GetProperty("policies")[0].GetProperty("failure-details")[0];
+
+            Assert.That(detail.TryGetProperty("failure-reason-code", out _), Is.False, detail.ToString());
 
         }
 

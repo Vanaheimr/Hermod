@@ -37,8 +37,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
 
     /// <summary>
     /// MTA-STS (RFC 8461): which TXT records and policies count, how a policy is fetched and
-    /// kept, which MX hosts it allows, and what the relay does under it. The findings M-1 to M-6
-    /// of SMTPConformanceTests.
+    /// kept, which MX hosts it allows, what the relay does under it, and why a policy could not be
+    /// had. The findings M-1 to M-7 and T-8 of SMTPConformanceTests.
     /// </summary>
     public partial class SMTPOutboundClientTests
     {
@@ -107,6 +107,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             public volatile String          ContentType   = "text/plain";
             public          HttpStatusCode  Status        = HttpStatusCode.OK;
             public          Uri?            RedirectedTo;
+            public          Exception?      Throws;
             public          Int32           Requests;
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage Request, CancellationToken CancellationToken)
@@ -115,6 +116,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
                 Interlocked.Increment(ref Requests);
 
                 Assert.That(Request.RequestUri, Is.EqualTo(new Uri($"https://mta-sts.{Domain}/.well-known/mta-sts.txt")));
+
+                if (Throws is not null)
+                    return Task.FromException<HttpResponseMessage>(Throws);
 
                 var response = new HttpResponseMessage(Status) { Content = new StringContent(Policy, Encoding.UTF8, ContentType) };
 
@@ -346,6 +350,149 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
             var result = await client.SendAsync(PolicyDomain, "sender@client.example", [ "you@next.example" ], "Subject: sts\r\n\r\nhello\r\n");
 
             Assert.That(result.Status, Is.EqualTo(SendStatus.Success), "the smart host has no policy of its own; next.example's names other hosts: " + result.ResponseText);
+
+        }
+
+        #endregion
+
+        #region M-7: a policy that could not be fetched
+
+        [TestCase(HttpStatusCode.InternalServerError, TestName = "M-7: a policy host that answered 500 is not asked again at once for the same id")]
+        [TestCase(HttpStatusCode.NotFound,            TestName = "M-7: a policy host that answered 404 is not asked again at once for the same id")]
+        [Description("RFC 8461 §3.3: \"In the case where the HTTPS GET fails, implementers SHOULD limit further attempts to a period of five minutes or longer per version ID, to avoid overwhelming resource-constrained recipients with cascading failures\"")]
+        public async Task A_policy_id_whose_fetch_failed_is_not_fetched_again_at_once(HttpStatusCode Status)
+        {
+
+            var dns  = new PolicyDns();
+            var host = new PolicyHost { Status = Status };
+            using var resolver = new MtaStsResolver(dns, new QuietLogger(), host);
+
+            var policies = new List<MtaStsPolicy>();
+            for (var attempt = 0; attempt < 3; attempt++)
+                policies.Add(await resolver.GetPolicyAsync(PolicyDomain));
+
+            Assert.Multiple(() => {
+                Assert.That(policies.Select(policy => policy.Mode),         Is.All.EqualTo(MtaStsMode.None));
+                Assert.That(policies.Select(policy => policy.FailureType),  Is.All.EqualTo("sts-policy-fetch-error"), "each delivery is told why there is none");
+                Assert.That(host.Requests,                                  Is.EqualTo(1),                            "one GET for id 20261004 within five minutes");
+            });
+
+        }
+
+
+        [Test(Description = "M-7 - RFC 8461 §3.3: the limit is \"a period of five minutes or longer\" - after it, the policy host is asked again")]
+        public async Task After_the_hold_a_policy_id_whose_fetch_failed_is_fetched_again()
+        {
+
+            var dns  = new PolicyDns();
+            var host = new PolicyHost { Status = HttpStatusCode.InternalServerError };
+            using var resolver = new MtaStsResolver(dns, new QuietLogger(), host) { FailedFetchHold = TimeSpan.Zero };
+
+            var failed  = await resolver.GetPolicyAsync(PolicyDomain);
+            host.Status = HttpStatusCode.OK;
+            var fetched = await resolver.GetPolicyAsync(PolicyDomain);
+
+            Assert.Multiple(() => {
+                Assert.That(failed.Mode,            Is.EqualTo(MtaStsMode.None));
+                Assert.That(fetched.Mode,           Is.EqualTo(MtaStsMode.Enforce));
+                Assert.That(fetched.FailureType,    Is.Null);
+                Assert.That(host.Requests,          Is.EqualTo(2));
+            });
+
+        }
+
+
+        [Test(Description = "M-7 - RFC 8461 §3.3: the limit is \"per version ID\" - a new id in the TXT record is fetched at once")]
+        public async Task After_a_fetch_that_failed_a_new_policy_id_is_fetched_at_once()
+        {
+
+            var dns  = new PolicyDns();
+            var host = new PolicyHost { Status = HttpStatusCode.InternalServerError };
+            using var resolver = new MtaStsResolver(dns, new QuietLogger(), host);
+
+            var failed  = await resolver.GetPolicyAsync(PolicyDomain);
+
+            dns.Txt     = [ "v=STSv1; id=20261005;" ];
+            host.Status = HttpStatusCode.OK;
+            var fetched = await resolver.GetPolicyAsync(PolicyDomain);
+
+            Assert.Multiple(() => {
+                Assert.That(failed.Mode,    Is.EqualTo(MtaStsMode.None));
+                Assert.That(fetched.Mode,   Is.EqualTo(MtaStsMode.Enforce), "the policy of id 20261005");
+                Assert.That(host.Requests,  Is.EqualTo(2));
+            });
+
+        }
+
+
+        [Test(Description = "M-7 - RFC 8461 §3.3: while the fetch of a new id is held back, the cached policy applies as before")]
+        public async Task While_a_new_id_is_held_back_the_cached_policy_applies()
+        {
+
+            var dns  = new PolicyDns();
+            var host = new PolicyHost();
+            using var resolver = new MtaStsResolver(dns, new QuietLogger(), host);
+
+            await resolver.GetPolicyAsync(PolicyDomain);
+
+            dns.Txt     = [ "v=STSv1; id=20261005;" ];
+            host.Status = HttpStatusCode.InternalServerError;
+            var first   = await resolver.GetPolicyAsync(PolicyDomain);
+            var second  = await resolver.GetPolicyAsync(PolicyDomain);
+
+            Assert.Multiple(() => {
+                Assert.That(first.Mode,     Is.EqualTo(MtaStsMode.Enforce));
+                Assert.That(second.Mode,    Is.EqualTo(MtaStsMode.Enforce));
+                Assert.That(host.Requests,  Is.EqualTo(2), "one GET for id 20261004, one for 20261005");
+            });
+
+        }
+
+        #endregion
+
+        #region T-8: why a policy could not be had
+
+        [TestCase("500",          "sts-policy-fetch-error", "HTTP 500",                  TestName = "T-8: a 500 is a sts-policy-fetch-error")]
+        [TestCase("redirect",     "sts-policy-fetch-error", "HTTP 302",                  TestName = "T-8: a redirect is a sts-policy-fetch-error")]
+        [TestCase("unreachable",  "sts-policy-fetch-error", "connection refused",        TestName = "T-8: an unreachable policy host is a sts-policy-fetch-error")]
+        [TestCase("webpki",       "sts-webpki-invalid",     "untrusted",                 TestName = "T-8: a policy host whose certificate does not validate is a sts-webpki-invalid")]
+        [TestCase("text/html",    "sts-policy-invalid",     "media type text/html",      TestName = "T-8: a policy that is not text/plain is a sts-policy-invalid")]
+        [TestCase("no max_age",   "sts-policy-invalid",     "not a valid STSv1 policy",  TestName = "T-8: a policy without max_age is a sts-policy-invalid")]
+        [Description("RFC 8460 §4.3.2.2: sts-policy-fetch-error, sts-policy-invalid, sts-webpki-invalid - a policy the TXT record announces and that cannot be had applies as none, and says why")]
+        public async Task A_policy_that_could_not_be_had_says_why(String Case, String FailureType, String Reason)
+        {
+
+            var host   = Case switch {
+                             "500"          => new PolicyHost { Status = HttpStatusCode.InternalServerError },
+                             "redirect"     => new PolicyHost { Status = HttpStatusCode.Found },
+                             "unreachable"  => new PolicyHost { Throws = new HttpRequestException("connection refused") },
+                             "webpki"       => new PolicyHost { Throws = new HttpRequestException("TLS", new System.Security.Authentication.AuthenticationException("untrusted")) },
+                             "text/html"    => new PolicyHost { ContentType = "text/html" },
+                             _              => new PolicyHost { Policy = "version: STSv1\r\nmode: enforce\r\nmx: mail.next.example\r\n" }
+                         };
+
+            var policy = await PolicyFor(new PolicyDns(), host);
+
+            Assert.Multiple(() => {
+                Assert.That(policy.Mode,            Is.EqualTo(MtaStsMode.None));
+                Assert.That(policy.PolicyId,        Is.EqualTo("20261004"));
+                Assert.That(policy.FailureType,     Is.EqualTo(FailureType));
+                Assert.That(policy.FailureReason,   Is.EqualTo(Reason));
+            });
+
+        }
+
+
+        [Test(Description = "RFC 8460 §4.3.2.2: without a TXT record there is no policy to be had, and nothing that failed - a guard for T-8")]
+        public async Task Without_a_TXT_record_there_is_no_failure()
+        {
+
+            var policy = await PolicyFor(new PolicyDns { Txt = [] }, new PolicyHost());
+
+            Assert.Multiple(() => {
+                Assert.That(policy.Mode,            Is.EqualTo(MtaStsMode.None));
+                Assert.That(policy.FailureType,     Is.Null);
+            });
 
         }
 

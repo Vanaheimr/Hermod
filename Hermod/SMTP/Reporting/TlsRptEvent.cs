@@ -42,6 +42,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP;
 /// <param name="FailureType">On failure, the RFC 8460 §4.3 result-type; null on success.</param>
 /// <param name="PolicyString">The policy applied, as the "policy-string" of RFC 8460 §4.4/§4.5: the lines of the
 /// MTA-STS policy, or the TLSA records as "usage selector matching-type data"; empty without a policy.</param>
+/// <param name="FailureReasonCode">On failure, what exactly went wrong - "an error code or error text" (RFC 8460
+/// §4.3.3) - as the "failure-reason-code" of the report; a certificate-not-trusted and a validation-failure
+/// SHOULD have one (§4.3.1).</param>
 public sealed record TlsRptEvent(String                  PolicyDomain,
                                  TlsRptPolicyType        PolicyType,
                                  String?                 MxHost,
@@ -49,4 +52,5 @@ public sealed record TlsRptEvent(String                  PolicyDomain,
                                  String?                 SendingIp,
                                  Boolean                 Success,
                                  String?                 FailureType,
-                                 IReadOnlyList<String>?  PolicyString   = null);
+                                 IReadOnlyList<String>?  PolicyString       = null,
+                                 String?                 FailureReasonCode  = null);
