@@ -107,7 +107,22 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Messaging
         /// <summary>
         /// This end failed while serving the connection.
         /// </summary>
-        InternalServerError = 1011
+        InternalServerError = 1011,
+
+        /// <summary>
+        /// Replaced by a newer connection of the same identity, as the server's policy for duplicate
+        /// connections allowed it (white paper "EVQI Transport", section 12.6). From RFC 6455's private
+        /// range: a client that holds no newer connection of its own to that server does not reconnect at
+        /// once - somebody else may be using its identity.
+        /// </summary>
+        Superseded          = 4000,
+
+        /// <summary>
+        /// Replaced by a newer connection of the same identity after it did not answer the server's probe
+        /// in time (white paper "EVQI Transport", section 12.6): most likely a network problem, after which
+        /// the client reconnects as usual.
+        /// </summary>
+        Unresponsive        = 4001
 
     }
 
