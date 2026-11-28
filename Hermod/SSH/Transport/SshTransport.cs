@@ -525,7 +525,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             Interlocked.Add      (ref bytesSentSinceKex, Payload.Length);
             Interlocked.Increment(ref packetsSentSinceKex);
 
-            await pipe.Output.FlushAsync(CancellationToken).ConfigureAwait(false);
+            // A flush that comes back canceled, though not by this token, has written nothing - and
+            // nothing else will flush this packet where the peer now waits for it. The writer of a
+            // socket's pipe, a StreamPipeWriter, has such flushes: FlushAsync(token) registers the
+            // token to cancel a token source of the writer's own, which it resets only after a flush
+            // that ended in a cancellation. A token canceled just after its flush succeeded - the EOF
+            // of a channel the peer is closing - leaves that source canceled, and the flush of the
+            // next packet comes back canceled. A CHANNEL_OPEN_CONFIRMATION then stayed in the pipe,
+            // and the client waited for it for ever. A second flush has a fresh source and writes.
+            // A flush canceled by this token throws, and the packet goes with the next, as above.
+            for (var attempt = 0; (await pipe.Output.FlushAsync(CancellationToken).ConfigureAwait(false)).IsCanceled; attempt++)
+            {
+                if (attempt >= 3)
+                    throw new SshWireException("The pipe's writer canceled every flush of a packet it holds.");
+            }
 
         }
 
