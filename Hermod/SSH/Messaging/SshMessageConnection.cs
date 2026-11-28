@@ -19,6 +19,7 @@
 
 using System.Text;
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 
 using Microsoft.Extensions.Logging;
 
@@ -316,6 +317,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         private          Int64                                       lastSentTicks;
         private          Int64                                       lastReceivedTicks;
         private volatile SshMessageCloseInfo?                        closeInfo;
+        private          TaskCompletionSource?                       frameAwaited;
 
         #endregion
 
@@ -572,6 +574,52 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         #endregion
 
 
+        #region (internal) ProbeAsync(Timeout)
+
+        /// <summary>
+        /// Whether the peer still reads this connection: a PING with 16 random bytes, and any frame from the
+        /// peer within the timeout - the PONG, or whatever it was sending anyway (white paper "EVQI
+        /// Transport", section 12.4). The PING is not waited for: one that cannot leave because the peer
+        /// stopped reading and its window is full is the answer too.
+        /// </summary>
+        /// <remarks>
+        /// A peer is only as quick as this side's reading of it: a frame that arrived but waits behind a
+        /// message handler still running has not been read, and counts as none.
+        /// </remarks>
+        /// <param name="Timeout">How long the peer has.</param>
+        internal async Task<Boolean> ProbeAsync(TimeSpan Timeout)
+        {
+
+            if (!IsAlive)
+                return false;
+
+            var arrived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            Interlocked.Exchange(ref frameAwaited, arrived);
+
+            try
+            {
+
+                _ = SendFrameAsync(SshMessageFrameType.Ping, RandomNumberGenerator.GetBytes(16), lifetime.Token);
+
+                await arrived.Task.WaitAsync(Timeout, lifetime.Token).ConfigureAwait(false);
+
+                return true;
+
+            }
+            catch (Exception exception) when (exception is TimeoutException or OperationCanceledException)
+            {
+                return false;
+            }
+            finally
+            {
+                Interlocked.CompareExchange(ref frameAwaited, null, arrived);
+            }
+
+        }
+
+        #endregion
+
         #region (internal) RunAsync(Stopped)
 
         /// <summary>
@@ -608,6 +656,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                     }
 
                     Interlocked.Exchange(ref lastReceivedTicks, Timestamp.Now.UtcTicks);
+
+                    // A probe waiting for the peer learns that it is still there - whatever the frame.
+                    Interlocked.Exchange(ref frameAwaited, null)?.TrySetResult();
 
                     switch (received.Type)
                     {

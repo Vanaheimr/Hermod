@@ -45,7 +45,8 @@ byte[]  payload   length - 1 bytes
 - TEXT that is not valid UTF-8 ends the connection with CLOSE `1007`.
 - A frame of an unknown kind from `0x80` on is skipped; that range is kept for extensions. Any other
   unknown kind ends the connection with CLOSE `1002`.
-- Close codes are those of RFC 6455, section 7.4.1.
+- Close codes are those of RFC 6455, section 7.4.1, and two of its private range, `4000` and `4001`
+  (see "A second connection of an identity").
 
 ## The handshake
 
@@ -82,7 +83,8 @@ byte[]  payload   length - 1 bytes
      - Except where it carries `retryAfter`, a whole number of seconds from 0 to 86400: the client may
        try again once that time has passed, as after an HTTP `409` with `Retry-After`. Hermod's
        client waits at least that long before its next attempt. The code
-       `connection-exists` says the client's identity has a connection this one may not take over.
+       `connection-exists` says the client's identity has a connection this one may not take over
+       (see "A second connection of an identity").
 4. After WELCOME, both sides send TEXT, BINARY, PING and PONG in any order. Neither sends a message
    larger than the other side's `maxMessageSize`. A HELLO, WELCOME or REFUSED from then on is a
    protocol error.
@@ -94,6 +96,34 @@ byte[]  payload   length - 1 bytes
   (`MaxOutstandingPings`, 3 by default): no message, no PONG, no frame. It then closes the channel
   without a CLOSE, which a dead peer could not read, as Hermod's WebSockets do.
 - Every frame counts, not only a PONG: a PONG may have to wait behind a long message.
+
+## A second connection of an identity
+
+A server decides what a second connection of an identity that is still connected gets, before it
+answers that connection's HELLO. The identity is the SSH login by default; an application may name
+another, such as the networking node a HELLO says the client acts for. "Newest wins" alone would let
+anyone with a station's credentials knock the station off as often as they like. "Oldest wins" alone
+would lock a station out for as long as its server takes to notice that the old connection is dead.
+The rules follow chapter 12 of the white paper "EVQI Transport".
+
+- **Probe** (Hermod's default): the server sends the old connection a PING with 16 random bytes. A
+  frame from it within a short time (Hermod: `ProbeTimeout`, 3 s), the PONG or anything else, means
+  it is alive.
+  - The old connection is alive: the newcomer gets REFUSED `connection-exists` with `retryAfter`.
+  - It is not: it is closed with CLOSE `4001` (unresponsive), and the newcomer gets its WELCOME.
+  - While one probe of an identity runs, a further newcomer of it is refused at once.
+- **Replace**: the old connection is closed with CLOSE `4000` (superseded), and the newcomer is served.
+- **KeepExisting**: the newcomer is refused while the old connection is there, alive or not.
+- **Parallel**: both are served, up to a limit per identity (Hermod: `MaxPerIdentity`). This is for the
+  channels of one channel session, or a station both behind a local controller and direct.
+
+A server randomizes the `retryAfter` of `connection-exists`, so that two clients of one identity do not
+come back in step. Hermod uses 30 s plus up to 30 s more.
+
+The two close codes say different things to a client:
+- `4001`: it did not answer in time, which most likely means a network problem. Reconnect as usual.
+- `4000`: another connection now holds the identity. A client that did not open that connection
+  itself does not reconnect at once, since somebody else may be using its identity.
 
 ## The end
 

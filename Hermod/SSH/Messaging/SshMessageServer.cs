@@ -18,6 +18,9 @@
 #region Usings
 
 using System.Collections.Concurrent;
+using System.Collections.Immutable;
+
+using Microsoft.Extensions.Logging;
 
 using Newtonsoft.Json.Linq;
 
@@ -66,7 +69,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public TimeSpan?                                     RetryAfter       { get; }
 
-        private SshHelloVerdict(Boolean Accepted, String? RefusalCode, String? Description, JObject? WelcomeProperties, IReadOnlyDictionary<String, Object?>? CustomData, TimeSpan? RetryAfter = null)
+        /// <summary>
+        /// Whom the connection is of, where it is served: a second connection of the same identity is what
+        /// <see cref="SshMessageServerOptions.DuplicatePolicy"/> decides about. Null for the SSH login.
+        /// </summary>
+        public String?                                       Identity         { get; }
+
+        /// <summary>
+        /// The policy for a second connection of <see cref="Identity"/>, where it differs from the server's
+        /// <see cref="SshMessageServerOptions.DuplicatePolicy"/>; null for that.
+        /// </summary>
+        public SshDuplicatePolicy?                           DuplicatePolicy  { get; }
+
+        private SshHelloVerdict(Boolean Accepted, String? RefusalCode, String? Description, JObject? WelcomeProperties, IReadOnlyDictionary<String, Object?>? CustomData, TimeSpan? RetryAfter = null, String? Identity = null, SshDuplicatePolicy? DuplicatePolicy = null)
         {
             this.Accepted           = Accepted;
             this.RefusalCode        = RefusalCode;
@@ -74,6 +89,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             this.WelcomeProperties  = WelcomeProperties;
             this.CustomData         = CustomData;
             this.RetryAfter         = RetryAfter;
+            this.Identity           = Identity;
+            this.DuplicatePolicy    = DuplicatePolicy;
         }
 
         /// <summary>
@@ -81,10 +98,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <param name="WelcomeProperties">What the WELCOME tells besides the subprotocol and the limit.</param>
         /// <param name="CustomData">What the connection carries as custom data from the start.</param>
+        /// <param name="Identity">Whom the connection is of - the networking node the client acts for, say;
+        /// null for the SSH login.</param>
+        /// <param name="DuplicatePolicy">The policy for a second connection of that identity, where it is not
+        /// the server's.</param>
         public static SshHelloVerdict Accept(JObject?                               WelcomeProperties  = null,
-                                             IReadOnlyDictionary<String, Object?>?  CustomData         = null)
+                                             IReadOnlyDictionary<String, Object?>?  CustomData         = null,
+                                             String?                                Identity           = null,
+                                             SshDuplicatePolicy?                    DuplicatePolicy    = null)
 
-            => new (true, null, null, WelcomeProperties, CustomData);
+            => new (true, null, null, WelcomeProperties, CustomData, null, Identity, DuplicatePolicy);
 
         /// <summary>
         /// Do not serve the client: it is told so with a REFUSED frame, and the channel is closed.
@@ -162,7 +185,140 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         public const UInt32                  DefaultMaxOutstandingPings = 3;
 
+        /// <summary>
+        /// What a second connection of an identity that is still connected gets - see
+        /// <see cref="SshDuplicatePolicy"/>: <see cref="SshDuplicatePolicy.Probe"/> by default.
+        /// </summary>
+        public SshDuplicatePolicy            DuplicatePolicy     { get; init; } = SshDuplicatePolicy.Probe;
+
+        /// <summary>
+        /// How long a connection that is probed has to show it is alive: 3 seconds by default, well below
+        /// <see cref="HelloTimeout"/>, which the newcomer waits through.
+        /// </summary>
+        public TimeSpan                      ProbeTimeout        { get; init; } = TimeSpan.FromSeconds(3);
+
+        /// <summary>
+        /// How many connections an identity may have under <see cref="SshDuplicatePolicy.Parallel"/>; null
+        /// for no limit.
+        /// </summary>
+        public UInt32?                       MaxPerIdentity      { get; init; }
+
+        /// <summary>
+        /// After how long a newcomer refused as a duplicate may try again: the REFUSED says this much and up
+        /// to as much again, chosen at random, so that two clients of one identity do not come back in step.
+        /// 30 seconds by default.
+        /// </summary>
+        public TimeSpan                      DuplicateRetryAfter { get; init; } = TimeSpan.FromSeconds(30);
+
     }
+
+
+    /// <summary>
+    /// What a second connection of an identity that is still connected gets (white paper "EVQI Transport",
+    /// section 12.3). "Newest wins" alone lets anyone with a station's credentials knock it off as often as
+    /// they like, and two stations configured alike knock each other off in a loop; "oldest wins" alone
+    /// locks a station out for as long as its server takes to notice that the old connection is dead.
+    /// </summary>
+    public enum SshDuplicatePolicy
+    {
+
+        /// <summary>
+        /// The old connections are closed with <see cref="MessageCloseCode.Superseded"/>, and the newcomer is
+        /// served: newest wins, whatever the old ones' state.
+        /// </summary>
+        Replace,
+
+        /// <summary>
+        /// The old connections are probed (<see cref="SshMessageServerOptions.ProbeTimeout"/>). One that is
+        /// alive keeps the identity, and the newcomer is refused with "connection-exists" and a retryAfter;
+        /// those that are not are closed with <see cref="MessageCloseCode.Unresponsive"/>, and the newcomer
+        /// is served. While a probe of an identity runs, a further newcomer of it is refused at once. The
+        /// default.
+        /// </summary>
+        Probe,
+
+        /// <summary>
+        /// The newcomer is refused while the identity has a connection, alive or not: the server's own PINGs
+        /// (<see cref="SshMessageServerOptions.PingEvery"/>) remove a dead one. For strict sites that accept
+        /// being locked out after a path change until they do.
+        /// </summary>
+        KeepExisting,
+
+        /// <summary>
+        /// The newcomer is served beside the old connections, up to
+        /// <see cref="SshMessageServerOptions.MaxPerIdentity"/>: the channels of one channel session, or a
+        /// station reached both through a local controller and directly.
+        /// </summary>
+        Parallel
+
+    }
+
+
+    /// <summary>
+    /// What became of a newcomer of an identity that had a connection already.
+    /// </summary>
+    public enum SshDuplicateDecision
+    {
+
+        /// <summary>
+        /// Served, and the old connections closed with <see cref="MessageCloseCode.Superseded"/>.
+        /// </summary>
+        Replaced,
+
+        /// <summary>
+        /// Served, after the old connections did not answer the probe and were closed with
+        /// <see cref="MessageCloseCode.Unresponsive"/>.
+        /// </summary>
+        ReplacedUnresponsive,
+
+        /// <summary>
+        /// Served beside the old connections.
+        /// </summary>
+        ServedAlongside,
+
+        /// <summary>
+        /// Refused: an old connection is alive, or is kept regardless.
+        /// </summary>
+        Refused,
+
+        /// <summary>
+        /// Refused at once: a probe of the identity was running.
+        /// </summary>
+        RefusedWhileProbing,
+
+        /// <summary>
+        /// Refused: the identity has as many connections as <see cref="SshMessageServerOptions.MaxPerIdentity"/> allows.
+        /// </summary>
+        RefusedOverLimit
+
+    }
+
+
+    /// <summary>
+    /// A newcomer of an identity that had a connection already, and what became of it - for the node's log
+    /// and its alarms (white paper "EVQI Transport", section 12.7).
+    /// </summary>
+    /// <param name="Identity">Whom the connections are of.</param>
+    /// <param name="Policy">The policy that decided.</param>
+    /// <param name="Decision">What it decided.</param>
+    /// <param name="Existing">The identity's connections the newcomer found.</param>
+    /// <param name="Newcomer">Who signed in for the newcomer, and from where.</param>
+    /// <param name="RetryAfter">What a refused newcomer was told about trying again.</param>
+    public sealed record SshDuplicateConnection(String                               Identity,
+                                                SshDuplicatePolicy                   Policy,
+                                                SshDuplicateDecision                 Decision,
+                                                IReadOnlyList<SshMessageConnection>  Existing,
+                                                SshSessionInfo                       Newcomer,
+                                                TimeSpan?                            RetryAfter);
+
+
+    /// <summary>
+    /// A newcomer of an identity that had a connection already was decided about.
+    /// </summary>
+    public delegate Task OnSshDuplicateConnectionDelegate(DateTimeOffset          Timestamp,
+                                                          SshMessageServer        Sender,
+                                                          SshDuplicateConnection  Duplicate,
+                                                          CancellationToken       CancellationToken);
 
 
     /// <summary>
@@ -175,7 +331,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        private readonly ConcurrentDictionary<SshMessageConnection, Byte>  connections = new ();
+        private readonly ConcurrentDictionary<SshMessageConnection, String>                  connections  = new ();
+        private readonly ConcurrentDictionary<String, ImmutableList<SshMessageConnection>>  byIdentity   = new (StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<String, SemaphoreSlim>                        deciding     = new (StringComparer.Ordinal);
+        private readonly ConcurrentDictionary<String, Byte>                                 probing      = new (StringComparer.Ordinal);
 
         #endregion
 
@@ -208,6 +367,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #endregion
 
+        #region Events
+
+        /// <summary>
+        /// A newcomer of an identity that had a connection already was decided about: replaced, served
+        /// alongside or refused.
+        /// </summary>
+        public event OnSshDuplicateConnectionDelegate?  OnDuplicateConnection;
+
+        #endregion
+
         #region Constructor(s)
 
         /// <summary>
@@ -217,6 +386,35 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         {
             this.Options = Options;
         }
+
+        #endregion
+
+
+        #region ConnectionsOf(Identity)
+
+        /// <summary>
+        /// The connections of the given identity served now: one, as a rule; more under
+        /// <see cref="SshDuplicatePolicy.Parallel"/>.
+        /// </summary>
+        /// <param name="Identity">The identity, as <see cref="SshHelloVerdict.Identity"/> gave it, or the SSH login.</param>
+        public IReadOnlyList<SshMessageConnection> ConnectionsOf(String Identity)
+
+            => byIdentity.TryGetValue(Identity, out var current)
+                   ? current
+                   : [];
+
+        #endregion
+
+        #region IdentityOf(Connection)
+
+        /// <summary>
+        /// The identity the given connection is of, while it is served.
+        /// </summary>
+        public String? IdentityOf(SshMessageConnection Connection)
+
+            => connections.TryGetValue(Connection, out var identity)
+                   ? identity
+                   : null;
 
         #endregion
 
@@ -362,20 +560,79 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             #endregion
 
-            #region WELCOME, and the connection
+            #region A second connection of the identity? Then WELCOME, and the connection
 
-            var welcome = SshMessageWelcome.Create(subprotocol, Options.MaxMessageSizeIn, verdict.WelcomeProperties);
+            var identity = verdict.Identity ?? Context.Session.Username.ToString();
+            var policy   = verdict.DuplicatePolicy ?? Options.DuplicatePolicy;
+
+            // One newcomer of an identity is decided about at a time, and its connection is on the books
+            // before the next one is decided about. While a probe runs, the next is not kept waiting but
+            // refused at once.
+            if (probing.ContainsKey(identity))
+            {
+                await RefuseDuplicateAsync(Context, identity, policy, SshDuplicateDecision.RefusedWhileProbing, ConnectionsOf(identity),
+                                           $"Another connection of '{identity}' is being checked.").ConfigureAwait(false);
+                return;
+            }
+
+            var gate = deciding.GetOrAdd(identity, _ => new SemaphoreSlim(1, 1));
 
             try
             {
-                await channel.SendDataAsync(SshMessageFraming.Encode(SshMessageFrameType.Welcome, welcome.ToBytes()), CancellationToken).ConfigureAwait(false);
+                await gate.WaitAsync(CancellationToken).ConfigureAwait(false);
             }
-            catch (Exception)
+            catch (OperationCanceledException)
             {
                 return;
             }
 
-            var connection = new SshMessageConnection(
+            SshMessageConnection     connection;
+            SshDuplicateConnection?  duplicate   = null;
+
+            try
+            {
+
+                var existing = ConnectionsOf(identity).Where(old => old.IsAlive).ToArray();
+
+                if (existing.Length > 0)
+                {
+
+                    var (decision, replaced, code) = await DecideAsync(identity, policy, existing).ConfigureAwait(false);
+
+                    if (decision is SshDuplicateDecision.Refused or SshDuplicateDecision.RefusedOverLimit)
+                    {
+                        await RefuseDuplicateAsync(Context, identity, policy, decision, existing,
+                                                   decision == SshDuplicateDecision.RefusedOverLimit
+                                                       ? $"'{identity}' has as many connections as it may."
+                                                       : $"'{identity}' has a connection that is alive.").ConfigureAwait(false);
+                        return;
+                    }
+
+                    // Off the books at once, so that nothing more goes to them; closed without holding the
+                    // newcomer up, as one that stopped reading may never take its CLOSE.
+                    foreach (var old in replaced)
+                    {
+                        Forget(identity, old);
+                        _ = EndReplacedAsync(old, code!.Value);
+                    }
+
+                    duplicate = new SshDuplicateConnection(identity, policy, decision, existing, Context.Session, null);
+
+                }
+
+                // WELCOME, and the connection on the books of its identity.
+                var welcome = SshMessageWelcome.Create(subprotocol, Options.MaxMessageSizeIn, verdict.WelcomeProperties);
+
+                try
+                {
+                    await channel.SendDataAsync(SshMessageFraming.Encode(SshMessageFrameType.Welcome, welcome.ToBytes()), CancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception)
+                {
+                    return;
+                }
+
+                connection = new SshMessageConnection(
                                  this,
                                  ConnectionRole.Server,
                                  Context.Name,
@@ -391,13 +648,23 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                  Math.Min(Options.MaxMessageSizeOut, hello.MaxMessageSize ?? Options.MaxMessageSizeOut)
                              );
 
-            if (verdict.CustomData is not null)
-                foreach (var (key, value) in verdict.CustomData)
-                    connection.TryAddCustomData(key, value);
+                if (verdict.CustomData is not null)
+                    foreach (var (key, value) in verdict.CustomData)
+                        connection.TryAddCustomData(key, value);
+
+                connections.TryAdd(connection, identity);
+                Register(identity, connection);
+
+            }
+            finally
+            {
+                gate.Release();
+            }
+
+            if (duplicate is not null)
+                await RaiseDuplicateConnection(duplicate).ConfigureAwait(false);
 
             #endregion
-
-            connections.TryAdd(connection, 0);
 
             // A server that stops says goodbye; the read loop below then ends with the channel.
             using var stopping = Context.Stopping.Register(() => _ = connection.Close(MessageCloseCode.GoingAway, "The server is stopping."));
@@ -420,6 +687,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             {
 
                 connections.TryRemove(connection, out _);
+                Forget(identity, connection);
 
                 await RaiseConnectionClosed(connection,
                                             connection.CloseInfo ?? new SshMessageCloseInfo(null, null, ByPeer: true),
@@ -523,6 +791,175 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                    await chosen.ServeAfterAsync(context, frame, cancellationToken).ConfigureAwait(false);
 
                };
+
+        #endregion
+
+        #region (private) DecideAsync(Identity, Policy, Existing)
+
+        /// <summary>
+        /// What the policy makes of a newcomer of an identity that has the given live connections: the
+        /// decision, the connections to close, and the close code to close them with.
+        /// </summary>
+        private async Task<(SshDuplicateDecision Decision, SshMessageConnection[] Replaced, MessageCloseCode? Code)>
+
+            DecideAsync(String                  Identity,
+                        SshDuplicatePolicy      Policy,
+                        SshMessageConnection[]  Existing)
+
+        {
+
+            switch (Policy)
+            {
+
+                case SshDuplicatePolicy.Replace:
+                    return (SshDuplicateDecision.Replaced, Existing, MessageCloseCode.Superseded);
+
+                case SshDuplicatePolicy.KeepExisting:
+                    return (SshDuplicateDecision.Refused, [], null);
+
+                case SshDuplicatePolicy.Parallel:
+                    return Options.MaxPerIdentity is UInt32 most && Existing.Length >= most
+                               ? (SshDuplicateDecision.RefusedOverLimit, [], null)
+                               : (SshDuplicateDecision.ServedAlongside,  [], null);
+
+                default:
+
+                    probing.TryAdd(Identity, 0);
+
+                    try
+                    {
+
+                        var answered = await Task.WhenAll(Existing.Select(old => old.ProbeAsync(Options.ProbeTimeout))).ConfigureAwait(false);
+
+                        return answered.Any(alive => alive)
+                                   ? (SshDuplicateDecision.Refused,              [],       null)
+                                   : (SshDuplicateDecision.ReplacedUnresponsive, Existing, MessageCloseCode.Unresponsive);
+
+                    }
+                    finally
+                    {
+                        probing.TryRemove(Identity, out _);
+                    }
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private) RefuseDuplicateAsync(Context, Identity, Policy, Decision, Existing, Description)
+
+        /// <summary>
+        /// Refuse a newcomer with "connection-exists" and a retryAfter chosen at random between
+        /// <see cref="SshMessageServerOptions.DuplicateRetryAfter"/> and twice that, and say so.
+        /// </summary>
+        private async Task RefuseDuplicateAsync(SshSubsystemContext                  Context,
+                                                String                               Identity,
+                                                SshDuplicatePolicy                   Policy,
+                                                SshDuplicateDecision                 Decision,
+                                                IReadOnlyList<SshMessageConnection>  Existing,
+                                                String                               Description)
+        {
+
+            var retryAfter = Options.DuplicateRetryAfter + TimeSpan.FromSeconds(Math.Round(Random.Shared.NextDouble() * Options.DuplicateRetryAfter.TotalSeconds));
+
+            await RefuseAsync(Context.Channel, SshMessageRefusal.ConnectionExists, Description, retryAfter).ConfigureAwait(false);
+
+            await RaiseDuplicateConnection(new SshDuplicateConnection(Identity, Policy, Decision, Existing, Context.Session, retryAfter)).ConfigureAwait(false);
+
+        }
+
+        #endregion
+
+        #region (private static) EndReplacedAsync(Connection, Code)
+
+        /// <summary>
+        /// Close a replaced connection with the given code - and, where its CLOSE cannot leave within a few
+        /// seconds because the other side stopped reading, end it without one.
+        /// </summary>
+        private static async Task EndReplacedAsync(SshMessageConnection  Connection,
+                                                   MessageCloseCode      Code)
+        {
+            try
+            {
+
+                var closing = Connection.Close(Code, Code == MessageCloseCode.Superseded
+                                                         ? "Superseded by a newer connection of the same identity."
+                                                         : "Did not answer, and was replaced by a newer connection of the same identity.");
+
+                if (await Task.WhenAny(closing, Task.Delay(TimeSpan.FromSeconds(5))).ConfigureAwait(false) != closing)
+                    await Connection.AbortAsync("Replaced by a newer connection of the same identity, and did not take the CLOSE.").ConfigureAwait(false);
+
+            }
+            catch
+            { }
+        }
+
+        #endregion
+
+        #region (private) Register(Identity, Connection) / Forget(Identity, Connection)
+
+        /// <summary>
+        /// Put the connection on the books of its identity.
+        /// </summary>
+        private void Register(String                Identity,
+                              SshMessageConnection  Connection)
+
+            => byIdentity.AddOrUpdate(Identity,
+                                      _        => [ Connection ],
+                                      (_, all) => all.Add(Connection));
+
+        /// <summary>
+        /// Take the connection off the books of its identity - and no other one: a connection that was
+        /// replaced ends after its successor was registered, and its end is not the successor's.
+        /// </summary>
+        private void Forget(String                Identity,
+                            SshMessageConnection  Connection)
+        {
+
+            while (byIdentity.TryGetValue(Identity, out var current) && current.Contains(Connection))
+            {
+
+                var rest = current.Remove(Connection);
+
+                if (rest.IsEmpty
+                        ? byIdentity.TryRemove(KeyValuePair.Create(Identity, current))
+                        : byIdentity.TryUpdate(Identity, rest, current))
+                {
+                    return;
+                }
+
+            }
+
+        }
+
+        #endregion
+
+        #region (private) RaiseDuplicateConnection(Duplicate)
+
+        /// <summary>
+        /// Every handler of <see cref="OnDuplicateConnection"/>, one after the other: one that fails is
+        /// logged, and the others run on.
+        /// </summary>
+        private async Task RaiseDuplicateConnection(SshDuplicateConnection Duplicate)
+        {
+
+            if (OnDuplicateConnection is null)
+                return;
+
+            foreach (var handler in OnDuplicateConnection.GetInvocationList().Cast<OnSshDuplicateConnectionDelegate>())
+            {
+                try
+                {
+                    await handler(Timestamp.Now, this, Duplicate, CancellationToken.None).ConfigureAwait(false);
+                }
+                catch (Exception exception)
+                {
+                    Logger?.LogWarning(exception, "A handler of {Event} failed.", nameof(OnDuplicateConnection));
+                }
+            }
+
+        }
 
         #endregion
 
