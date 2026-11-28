@@ -113,6 +113,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.HTTP
                 !CanComputeAgain(Response.ReprDigest))
                 return false;
 
+            // RFC 9421: a signature may cover Content-Encoding, Content-Length,
+            // Content-Digest or Vary, all of which compressing changes, and what
+            // it covers is the signer's to say. Compressing would leave it false,
+            // and it cannot be computed again without the signer's key.
+            if (Response.TryGetHeaderField(HTTPMessageSignatures.SignatureField,      out _) ||
+                Response.TryGetHeaderField(HTTPMessageSignatures.SignatureInputField, out _))
+                return false;
+
             // RFC 9110, Section 14.4: a 206 carries part of the *selected*
             // representation, and a content coding applies to the representation as
             // a whole. Compressing after ranging would describe neither.

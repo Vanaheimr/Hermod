@@ -30,6 +30,7 @@ Last verified: **2026-11-27**
 | [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750.html), Bearer tokens | Typed Bearer authorization parsing/serialization is available. Token validation and authorization policy are application concerns. The client answers a Bearer challenge with a token from its `Credentials`. |
 | [RFC 9651](https://www.rfc-editor.org/rfc/rfc9651.html), Structured Field Values | Lists, Dictionaries and Items with all eight bare types, including the Date and Display String that RFC 8941 did not have. Parsing follows Section 4.2 exactly, so what is malformed is refused rather than repaired, and serializing is the canonical form of Section 4.1 - the round trip is byte-for-byte, which is the property RFC 9421 signatures would need. The one leniency Section 4.2.7 asks for is there since 2026-10-28: a Byte Sequence without its `=` padding parses. Its first users are the RFC 9530 digest fields. |
 | [RFC 9530](https://www.rfc-editor.org/rfc/rfc9530.html), Digest Fields | `Content-Digest`, `Repr-Digest`, `Want-Content-Digest` and `Want-Repr-Digest` are typed on both directions, in `sha-256` and `sha-512`, with the grammar shared with HTTP/2. Opt-in on either role: the server's `AutomaticContentDigests` digests what it sends, after its compression; the client's `VerifyDigests` asks for a digest and checks it before it decodes. A handler's own digest is computed again when the server compresses. The obsolete `Content-MD5` stays readable. See [Digest fields](#digest-fields-rfc-9530). |
+| [RFC 9421](https://www.rfc-editor.org/rfc/rfc9421.html), HTTP Message Signatures | A request or a response is signed with `builder.TrySign(...)` and a signature on one verified with `VerifySignature(options)`, in all six registered algorithms, over every derived component of Section 2.2 and with every component parameter of Section 2.1. What a signature must cover, how old it may be and which keys may make it are the application's to say, in `HTTPSignatureVerificationOptions`. See [HTTP Message Signatures](#http-message-signatures-rfc-9421). |
 | [RFC 7239](https://www.rfc-editor.org/rfc/rfc7239.html), Forwarded | The field is parsed into typed elements - `for`, `by`, `host`, `proto` and any extension parameters - and can be built to be sent onwards when a request is proxied. Node identifiers cover addresses, `unknown` and obfuscated identifiers; the last two are kept opaque rather than resolved into an address that was never given. Where a request carries both, `Forwarded` is preferred over the `X-Forwarded-For` family (Section 7.4). Either way the addresses are recorded *beside* the peer socket and never instead of it: everything in these fields is hearsay from whoever wrote them (Section 8.1), and forgeable by the client when no proxy strips them. |
 | [RFC 9440](https://www.rfc-editor.org/rfc/rfc9440.html), Client-Cert | `Client-Cert` and `Client-Cert-Chain` are typed on requests, for both ends of a TLS-terminating reverse proxy. The proxy calls `ForwardClientCertificate(request.ClientCertificate, chain)` on the builder of the request it passes on: that removes whatever the client sent of either field, in any case and on any number of lines, and then declares the certificate the client authenticated with, and the chain if one is given, without the client's own certificate, which `X509Chain` puts first. With no certificate it only removes, which Section 2.4 asks of a connection without one. The server behind the proxy reads `ForwardedClientCertificate` and `ForwardedClientCertificateChain`. A certificate is read only from a single byte sequence holding exactly one DER-encoded certificate. A chain is read only when every link is one, and only when the certificate is there too; its field lines are joined in order, which the parser refused until then. A repeated `Client-Cert` is refused with the request, as any field the parser does not know to be a list. The stack reads neither field itself. Both are a claim of whoever wrote them, to be believed only from a proxy the application trusts (Section 4), and the connection's own certificate stays `ClientCertificate`. A chain of large RSA certificates can pass the server's 8 KiB field line limit, which `MaxHTTPHeaderLineLength` raises (Section 3.2). HTTP/2 and HTTP/3 build no `HTTPRequest`; their handlers have the codec, `HTTPClientCertificateFields`. |
 | [RFC 6265](https://www.rfc-editor.org/rfc/rfc6265.html) and [draft-ietf-httpbis-rfc6265bis-22](https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis-22), Cookies | `Set-Cookie` and `Cookie` are typed: `HTTPCookie` and `HTTPCookies`, read as Section 5.6 of 6265bis has a user agent read them, with the cookie-date algorithm, `Max-Age`, `Domain`, `Path`, `SameSite` and the size limits. A cookie every user agent ignores - one with `SameSite=None` without `Secure`, or a `__Secure-` or `__Host-` cookie without what its prefix needs - is no cookie here either. A request carries one `Cookie` line without attributes, and both fields are read when they arrive on more than one line. Hermod keeps no cookie store. Since 2026-11-27; see below. |
@@ -661,6 +662,66 @@ HTTP, and its doc comments say so and point here.
 The server offers `br` and `gzip` where the client accepts `br`, `gzip` and
 `deflate`: `deflate` is the one the wire disagrees about, so it is read and not
 written.
+
+## HTTP Message Signatures (RFC 9421)
+
+A request or a response can be signed, and a signature on one verified,
+since 2026-11-28. Before, Hermod had none of it: `Signature-Input`,
+`Signature` and `Accept-Signature` were three names in the set of fields that
+are lists, and that was all.
+
+The model is version-neutral and in `Hermod/HTTP/MessageSignatures/`:
+`HTTPSignatureComponent` is a component identifier, `HTTPSignatureParameters`
+the covered components with the metadata parameters, `HTTPSignatureBase` the
+signature base of Section 2.5, `HTTPSignatureKey` the key material, and
+`HTTPMessageSignatures` signs, verifies and reads the three fields.
+`HTTPMessageSignatureExtensions` binds it to HTTP/1.x:
+
+```csharp
+// The signer: last, after every field the signature covers is set.
+builder.TrySign("sig1",
+                new HTTPSignatureParameters([ HTTPSignatureComponent.Method,
+                                              HTTPSignatureComponent.Authority,
+                                              HTTPSignatureComponent.Path,
+                                              HTTPSignatureComponent.Field("Content-Digest") ],
+                                            Created: Timestamp.Now,
+                                            KeyId:   "my-key"),
+                HTTPSignatureKey.Ed25519(privateKey, "my-key"),
+                out var error,
+                Scheme: "https");
+
+// The verifier.
+var result = request.VerifySignature(new HTTPSignatureVerificationOptions {
+                 KeyResolver         = parameters => keys.GetValueOrDefault(parameters.KeyId ?? ""),
+                 RequiredComponents  = [ HTTPSignatureComponent.Method, HTTPSignatureComponent.Authority ],
+                 MaximumAge          = TimeSpan.FromMinutes(5)
+             });
+```
+
+| | |
+|---|---|
+| the components | Read from `RawHTTPHeader`, the header as it was on the wire, or for a builder as it will be, since the message a builder makes is parsed from that text. A field on two lines is two lines, which `bs` needs, and the request-target is the one on the request line, so `@path` and `@query` are not decoded. `@authority` is the absolute-form target's or the `Host` field's, in lower case and without the scheme's default port; two `Host` lines name none. The scheme, which a request in origin form does not carry, is the absolute-form target's, else the client's `RemoteURL`'s, else the connection's; a builder knows neither and takes it as an argument, and without one `@scheme` and `@target-uri` fail. |
+| the base | Section 2.5, and every error fails it: an unknown derived component or parameter, one that does not apply (`sf` on `@method`, `name` on a field), `bs` with `sf` or `key`, `req` in a signature on a request, `@status` on one, a field that is not there, a Dictionary member that is not there, a component twice, `@signature-params` as a component, a value that is not ASCII. `sf` and `key` need the field's type: `HTTPSignatureBase.KnownStructuredFields` has RFC 9421's, RFC 9530's, `Client-Cert`, `Client-Cert-Chain`, `Priority`, `Cache-Status`, `Proxy-Status` and `CDN-Cache-Control`, and an application can pass its own. |
+| `@query-param` | Section 2.2.8: the query parsed as `application/x-www-form-urlencoded` and each name and value percent-encoded again. A space becomes `%20`, as in every example of that section, where the WHATWG serializer it cites would write `+`. A name that occurs twice is an error, as the section requires. |
+| the algorithms | All six of the registry: `rsa-pss-sha512` (a salt of 64 octets, the BCL's for SHA-512), `rsa-v1_5-sha256`, `hmac-sha256` (compared in constant time), `ecdsa-p256-sha256` and `ecdsa-p384-sha384` (r and s concatenated, IEEE P1363; a DER signature does not verify), and `ed25519`, through BouncyCastle like the TLS stack's. JWS algorithms (Section 3.3.7) are not supported. |
+| the keys | A key has the one algorithm it is for, and a signature whose `alg` names another fails with `AlgorithmMismatch` before it is checked (Section 3.2, step 6.5). A public key verifies and does not sign. |
+| verifying | `HTTPSignatureVerificationOptions`: the `KeyResolver`, which is required, the `Label` or `Tag` to choose a signature by, `RequiredComponents`, `AllowedAlgorithms`, `RequireCreated`, `MaximumAge`, `RejectExpired` (on by default) and a `ClockSkew` of a minute. Without a label the first signature that meets them is the one. The result is an `HTTPSignatureVerification`, whose status says which step failed: `NotPresent`, `Malformed`, `NoMatchingSignature`, `InsufficientCoverage`, `CreatedMissing`, `CreatedInTheFuture`, `TooOld`, `Expired`, `UnknownKey`, `AlgorithmNotAllowed`, `AlgorithmMismatch`, `SignatureBaseError` or `Invalid`. |
+| the fields | Each line of `Signature-Input` and `Signature` is a Dictionary of its own, so a label on two lines is found twice and the message refused, where one Dictionary would have kept the last and dropped the first. A label must be in both fields, a member of `Signature` a Byte Sequence, a field name in `Signature-Input` lower case. A builder signed twice keeps both signatures, and refuses a label it has. |
+| `Accept-Signature` | `TryParseAcceptSignature` reads it, and `TrySignAsRequested` makes the signature a member asks for: its label, exactly its components, and every parameter it requests or none at all. `created` is now, `expires` needs a lifetime, `nonce` and `tag` are copied, and `alg` and `keyid` must be the key's. |
+| compression | `AutomaticContentCompression` does not compress a response with a `Signature` or `Signature-Input`. A signature may cover `Content-Encoding`, `Content-Length`, `Content-Digest` or `Vary`, compressing changes them, and only the signer's key could sign again. |
+
+What the server and the client do not do is sign or verify on their own:
+Section 3.2.1 makes coverage, age and keys an application's requirements, and
+a library that guessed them would accept what the application does not.
+
+The tests are `MessageSignatureTests`, against the RFC's own examples, taken
+from its text by a script rather than typed (`RFC9421Vectors`). The base of
+every example is the RFC's octet for octet; the RFC's signatures verify, RSA-PSS
+and ECDSA included; HMAC and Ed25519, which are deterministic, sign as the RFC
+does; and the six transformations of Appendix B.4 are valid or not as it says.
+The private key of `test-key-rsa`, in Appendix B.1.1, has primes of 1088 and
+960 bits: a valid RSA key, and one the BCL cannot import. Its public key
+verifies the proxy signature of Section 4.3.
 
 ## Content-Disposition (RFC 6266)
 
@@ -1345,6 +1406,7 @@ and `DotNetHTTPClientTests_MinimalAPI`.
   `RepeatedFieldLinesTests`
 - **Authentication:** `HTTPDigestAuthenticationTests`, `HTTPClientChallengeTests`
 - **Form bodies:** `MultipartFormDataTests`
+- **Message signatures (RFC 9421):** `MessageSignatureTests`
 
 Under `Tests.HTTP` and deliberately not in it: the version-neutral models of
 URLs, query strings, hostnames and methods, IPv6 zone identifiers included;
@@ -1404,11 +1466,13 @@ finding H-52, a list on more than one line, and joined with it, which makes
 fifty-one, and the same change put one case into `ClientContentDecodingTests`:
 **1313**. `TransferCodingDecodingTests` came with finding H-53, the transfer
 codings other than chunked, and joined with it, which makes fifty-two: **1341**.
+`MessageSignatureTests` came with RFC 9421, HTTP Message Signatures, and joined
+with it, which makes fifty-three: **1464**.
 
 Run it with:
 
 ```powershell
-dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests|FullyQualifiedName~MultipartFormDataTests|FullyQualifiedName~RepeatedFieldLinesTests|FullyQualifiedName~TransferCodingDecodingTests"
+dotnet test HermodTests\HermodTests.csproj --filter "FullyQualifiedName~HTTPClientTests|FullyQualifiedName~HTTPServerSocketRegressionTests|FullyQualifiedName~HTTPClientProtocolRegressionTests|FullyQualifiedName~HTTP11AuditRegressionTests|FullyQualifiedName~HTTP_TCPClientTests|FullyQualifiedName~ChunkedFramingTests|FullyQualifiedName~TransferCodingTests|FullyQualifiedName~BodilessResponseTests|FullyQualifiedName~HTTPLineEndingTests|FullyQualifiedName~HTTPClientPoolTests|FullyQualifiedName~NagleTests|FullyQualifiedName~HTTPStatusCodeTests|FullyQualifiedName~HTTPHeadDerivedFromGetTests|FullyQualifiedName~HTTPServerTraceTests|FullyQualifiedName~HTTPCORSPreflightTests|FullyQualifiedName~EarlyHintsTests|FullyQualifiedName~ProblemDetailsTests|FullyQualifiedName~HTTPServerListenerMatrixTests|FullyQualifiedName~HTTPServerALPNTests|FullyQualifiedName~HTTPServerAllowedTLSProtocolsTests|FullyQualifiedName~HTTPSClientTLSByDefaultTests|FullyQualifiedName~HTTPSClientHandshakeTimeoutTests|FullyQualifiedName~AcceptedConnectionTests|FullyQualifiedName~MisdirectedRequestTests|FullyQualifiedName~ContentEncodingHeaderTests|FullyQualifiedName~ContentCodingStreamTests|FullyQualifiedName~ClientContentDecodingTests|FullyQualifiedName~ServerContentCompressionTests|FullyQualifiedName~ResponseHeaderFieldTests|FullyQualifiedName~StructuredFieldsTests|FullyQualifiedName~HTTPDateTests|FullyQualifiedName~HTTPCookiesTests|FullyQualifiedName~ForwardedFieldTests|FullyQualifiedName~ClientCertificateFieldsTests|FullyQualifiedName~ContentTypeFieldTests|FullyQualifiedName~AlternativeServicesTests|FullyQualifiedName~DigestFieldsTests|FullyQualifiedName~LinkFieldTests|FullyQualifiedName~ContentDispositionTests|FullyQualifiedName~StrictTransportSecurityTests|FullyQualifiedName~HTTPDigestAuthenticationTests|FullyQualifiedName~HTTPClientRedirectTests|FullyQualifiedName~HTTPClientChallengeTests|FullyQualifiedName~HTTPClientDownloadTests|FullyQualifiedName~HTTPResourceSemanticsTests|FullyQualifiedName~AbsoluteFormTests|FullyQualifiedName~StaticFileValidatorsTests|FullyQualifiedName~HTTPCacheTests|FullyQualifiedName~HTTPClientCacheTests|FullyQualifiedName~MultipartFormDataTests|FullyQualifiedName~RepeatedFieldLinesTests|FullyQualifiedName~TransferCodingDecodingTests|FullyQualifiedName~MessageSignatureTests"
 ```
 
 ## Deliberate exclusions and qualification
