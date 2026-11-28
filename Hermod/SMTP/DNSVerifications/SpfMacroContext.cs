@@ -28,7 +28,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
     /// <summary>
     /// Values available to SPF macro expansion (RFC 7208 §7.2). The current &lt;domain&gt;
     /// (%{d}) is passed separately because it changes across include/redirect recursion.
+    /// <paramref name="ValidatedDomain"/> is the %{p} macro, the validated domain name of the
+    /// client (§7.3) - null for "unknown", when there is none.
     /// </summary>
-    public readonly record struct SpfMacroContext(String Sender, String LocalPart, String SenderDomain, String HeloDomain);
+    public readonly record struct SpfMacroContext(String Sender, String LocalPart, String SenderDomain, String HeloDomain, String? ValidatedDomain = null);
 
 }

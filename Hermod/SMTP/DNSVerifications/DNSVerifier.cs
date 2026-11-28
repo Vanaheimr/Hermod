@@ -141,7 +141,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         private const int MaxSpfNamesPerTerm = 10;
 
         // Mutable lookup budget shared across the whole (recursive) evaluation.
-        private sealed class SpfLookupState { public int Lookups; public int VoidLookups; }
+        private sealed class SpfLookupState
+        {
+            public int                     Lookups;
+            public int                     VoidLookups;
+            // The validated domain names of the client, once a %{p} has asked for them (RFC 7208 §7.3).
+            public IReadOnlyList<String>?  ValidatedNames;
+        }
 
         /// <summary>
         /// The end of check_host() before a result is reached: a DNS error ("temperror", RFC 7208
@@ -312,7 +318,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         CountLookup(state);
 
                         var (rawTarget, ip4Cidr, ip6Cidr) = ParseTarget(StripColon(argument), domain);
-                        var target = SpfMacros.Expand(rawTarget, domain, clientIp, ctx);
+                        var target = await ExpandAsync(rawTarget);
 
                         if (Matches(clientIp, await SpfAddressesAsync(target, clientIp.AddressFamily, state, true, ct), ip4Cidr, ip6Cidr))
                             return qualifier;
@@ -324,7 +330,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         CountLookup(state);
 
                         var (rawTarget, ip4Cidr, ip6Cidr) = ParseTarget(StripColon(argument), domain);
-                        var target = SpfMacros.Expand(rawTarget, domain, clientIp, ctx);
+                        var target = await ExpandAsync(rawTarget);
 
                         if (await MatchMxAsync(clientIp, target, ip4Cidr, ip6Cidr, state, ct))
                             return qualifier;
@@ -336,7 +342,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                         CountLookup(state);
 
                         var target = argument.Length > 0
-                                         ? SpfMacros.Expand(StripColon(argument), domain, clientIp, ctx)
+                                         ? await ExpandAsync(StripColon(argument))
                                          : domain;
 
                         if (await MatchPtrAsync(clientIp, target, state, ct))
@@ -348,7 +354,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     {
                         CountLookup(state);
 
-                        var includeDomain = SpfMacros.Expand(StripColon(argument), domain, clientIp, ctx);
+                        var includeDomain = await ExpandAsync(StripColon(argument));
 
                         // RFC 7208 §5.2: the result of check_host() for the included domain - a
                         // "temperror" or "permerror" there is the topmost result (thrown), and
@@ -366,7 +372,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     {
                         CountLookup(state);
 
-                        var existsDomain = SpfMacros.Expand(StripColon(argument), domain, clientIp, ctx);
+                        var existsDomain = await ExpandAsync(StripColon(argument));
 
                         // RFC 7208 §5.7: "The resulting domain name is used for a DNS A RR lookup
                         // (even when the connection type is IPv6). If any A record is returned,
@@ -390,7 +396,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
                 CountLookup(state);
 
-                var redirectTarget = SpfMacros.Expand(redirectDomain, domain, clientIp, ctx);
+                var redirectTarget = await ExpandAsync(redirectDomain);
 
                 // RFC 7208 §6.1: "if no SPF record is found, or if the <target-name> is malformed,
                 // the result is a "permerror" rather than "none"".
@@ -402,6 +408,75 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
 
             return SPFResult.Neutral;
+
+
+            // A domain-spec expanded (RFC 7208 §7) - with the validated domain name of the client
+            // for a %{p}, looked up only where a %{p} asks for it.
+            async Task<String> ExpandAsync(String Spec)
+
+                => SpfMacros.Expand(Spec,
+                                    domain,
+                                    clientIp,
+                                    SpfMacros.Uses(Spec, 'p')
+                                        ? ctx with { ValidatedDomain = await ValidatedDomainAsync(clientIp, domain, state, ct) }
+                                        : ctx);
+
+        }
+
+        /// <summary>
+        /// The %{p} macro (RFC 7208 §7.3): "the validated domain name of &lt;ip&gt;. The
+        /// procedure for finding the validated domain name is defined in Section 5.5. If the
+        /// &lt;domain&gt; is present in the list of validated domains, it SHOULD be used.
+        /// Otherwise, if a subdomain of the &lt;domain&gt; is present, it SHOULD be used.
+        /// Otherwise, any name from the list can be used." Null for "unknown": "If there are no
+        /// validated domain names or if a DNS error occurs". The PTR query counts against the
+        /// limit of ten lookups, and of its names the first ten are validated (§4.6.4); the
+        /// names are looked up once for the whole of check_host().
+        /// </summary>
+        private async Task<String?> ValidatedDomainAsync(System.Net.IPAddress clientIp, string domain, SpfLookupState state, CancellationToken ct)
+        {
+
+            if (state.ValidatedNames is null)
+            {
+
+                CountLookup(state);
+
+                IReadOnlyList<String> names;
+
+                try
+                {
+                    var response = await SpfQueryAsync(BuildReverseName(clientIp), DNSResourceRecordTypes.PTR, ct);
+                    names = [ .. (response?.Answers.OfType<PTR>() ?? []).Select(ptr => ptr.Target.FullName.TrimEnd('.')) ];
+                }
+                catch (SpfAbort)
+                {
+                    names = [];
+                }
+
+                var validated = new List<String>();
+
+                foreach (var name in names.Take(MaxSpfNamesPerTerm))
+                {
+                    try
+                    {
+                        if ((await SpfAddressesAsync(name, clientIp.AddressFamily, state, false, ct)).Any(ip => ip.Equals(clientIp)))
+                            validated.Add(name);
+                    }
+                    catch (SpfAbort)
+                    {
+                        // A DNS error for this name: skipped, as for ptr (§5.5).
+                    }
+                }
+
+                state.ValidatedNames = validated;
+
+            }
+
+            domain = domain.TrimEnd('.');
+
+            return state.ValidatedNames.FirstOrDefault(name => name.Equals(domain, StringComparison.OrdinalIgnoreCase)) ??
+                   state.ValidatedNames.FirstOrDefault(name => name.EndsWith("." + domain, StringComparison.OrdinalIgnoreCase)) ??
+                   state.ValidatedNames.FirstOrDefault();
 
         }
 
@@ -432,7 +507,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var ip6Cidr = 128;
 
             var domainPart = spec;
-            var slash      = spec.IndexOf('/');
+            var slash      = CidrStart(spec);
             if (slash >= 0)
             {
                 domainPart = spec[..slash];
@@ -442,6 +517,39 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             }
 
             return (string.IsNullOrEmpty(domainPart) ? defaultDomain : domainPart, ip4Cidr, ip6Cidr);
+        }
+
+        /// <summary>
+        /// Where the dual-cidr-length of an "a" or "mx" argument begins: at the first "/" outside
+        /// the braces of a macro, -1 without one. RFC 7208 §7.1: "/" is a delimiter too, and
+        /// "a:%{d/}.example.com" has no prefix length.
+        /// </summary>
+        private static Int32 CidrStart(String Argument)
+        {
+
+            for (var i = 0; i < Argument.Length; i++)
+            {
+
+                if (Argument[i] == '/')
+                    return i;
+
+                if (Argument[i] == '%' && i + 1 < Argument.Length)
+                {
+                    if (Argument[i + 1] == '{')
+                    {
+                        var end = Argument.IndexOf('}', i + 2);
+                        if (end < 0)
+                            return -1;
+                        i = end;
+                    }
+                    else
+                        i++;   // "%%", "%_", "%-"
+                }
+
+            }
+
+            return -1;
+
         }
 
         private static bool Matches(System.Net.IPAddress clientIp, IEnumerable<System.Net.IPAddress> addresses, int ip4Cidr, int ip6Cidr)
@@ -751,7 +859,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     var cidr = argument;
                     if (argument.StartsWith(':'))
                     {
-                        var slash = argument.IndexOf('/');
+                        var slash = CidrStart(argument);
                         if (!IsDomainSpec(slash < 0 ? argument[1..] : argument[1..slash]))
                             return false;
                         cidr = slash < 0 ? "" : argument[slash..];
@@ -852,8 +960,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                     return false;
 
                 var macro = Text[(i + 2)..end];
-                if (!Regex.IsMatch(macro, ExplanationLetters ? "^[slodiphcrtvSLODIPHCRTV][0-9]*[rR]?[.\\-+,/_=]*$"
-                                                             : "^[slodiphvSLODIPHV][0-9]*[rR]?[.\\-+,/_=]*$"))
+                // transformers = *DIGIT [ "r" ], and "If a DIGIT is specified, the value MUST be
+                // nonzero" (§7.3).
+                if (!Regex.IsMatch(macro, ExplanationLetters ? "^[slodiphcrtvSLODIPHCRTV](?:0*[1-9][0-9]*)?[rR]?[.\\-+,/_=]*$"
+                                                             : "^[slodiphvSLODIPHV](?:0*[1-9][0-9]*)?[rR]?[.\\-+,/_=]*$"))
                     return false;
 
                 i = end;

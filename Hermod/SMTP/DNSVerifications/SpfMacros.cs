@@ -17,6 +17,7 @@
 
 #region Usings
 
+using System.Globalization;
 using System.Net.Sockets;
 using System.Text;
 
@@ -34,7 +35,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
         /// <summary>
         /// Expand SPF macros in a domain-spec. <paramref name="domain"/> is the current record's
         /// domain (the %{d} macro), which changes across include/redirect recursion.
-        /// Note: macros that use '/' as a delimiter are not supported (would collide with CIDR).
+        /// Every delimiter of RFC 7208 §7.1 is one, "/" among them: the prefix length of an "a"
+        /// or "mx" mechanism is taken off the domain-spec before, outside the braces of a macro.
         /// </summary>
         public static String Expand(String input, String domain, System.Net.IPAddress clientIp, in SpfMacroContext ctx)
         {
@@ -79,6 +81,30 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
 
         }
 
+        /// <summary>
+        /// Whether a macro-string has a macro of the given letter, in either case - "%{p}" or
+        /// "%{P2r}", say, but not "%%{p}", which is "%" and "{p}".
+        /// </summary>
+        public static Boolean Uses(String input, Char letter)
+        {
+
+            for (var i = 0; i < input.Length - 2; i++)
+            {
+
+                if (input[i] != '%')
+                    continue;
+
+                if (input[i + 1] == '{' && Char.ToLowerInvariant(input[i + 2]) == Char.ToLowerInvariant(letter))
+                    return true;
+
+                i++;   // "%%", "%_", "%-", "%{" of another letter
+
+            }
+
+            return false;
+
+        }
+
         private static String ExpandOne(String macro, String domain, System.Net.IPAddress clientIp, in SpfMacroContext ctx)
         {
 
@@ -88,12 +114,21 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
             var letter    = Char.ToLowerInvariant(macro[0]);
             var urlEscape = Char.IsUpper(macro[0]);
 
+            // RFC 7208 §7.3: "If no DIGITs are specified, or if the value specifies more parts
+            // than are available, all the available parts are used" - a DIGIT of more digits than
+            // an Int32 takes is more parts than any value has. A DIGIT of 0 is a syntax error, the
+            // record refused for it before it is evaluated.
             var idx        = 1;
             var digitStart = idx;
-            while (idx < macro.Length && Char.IsDigit(macro[idx])) idx++;
-            int? keep = idx > digitStart ? Int32.Parse(macro[digitStart..idx]) : null;
+            while (idx < macro.Length && Char.IsAsciiDigit(macro[idx])) idx++;
+            int? keep = idx > digitStart
+                            ? Int32.TryParse(macro[digitStart..idx], NumberStyles.None, CultureInfo.InvariantCulture, out var digits)
+                                  ? digits
+                                  : Int32.MaxValue
+                            : null;
 
-            var reverse = idx < macro.Length && macro[idx] == 'r';
+            // transformers = *DIGIT [ "r" ] - an ABNF string, and so case-insensitive (RFC 5234 §2.3).
+            var reverse = idx < macro.Length && macro[idx] is 'r' or 'R';
             if (reverse) idx++;
 
             var delimiters = idx < macro.Length ? macro[idx..] : ".";
@@ -106,7 +141,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SMTP
                 'o' => ctx.SenderDomain,
                 'd' => domain,
                 'i' => FormatIp(clientIp),
-                'p' => "unknown",   // validated PTR is deprecated (RFC 7208 §7.3); not performed
+                // RFC 7208 §7.3: "If there are no validated domain names or if a DNS error
+                // occurs, the string "unknown" is used."
+                'p' => ctx.ValidatedDomain ?? "unknown",
                 'v' => clientIp.AddressFamily == AddressFamily.InterNetworkV6 ? "ip6" : "in-addr",
                 'h' => ctx.HeloDomain,
                 _   => ""           // c/r/t are only valid in exp text

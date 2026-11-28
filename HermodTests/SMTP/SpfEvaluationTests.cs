@@ -32,7 +32,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.Tests.SMTP
     /// SMTPConformanceTests.
     /// </summary>
     [TestFixture]
-    public class SpfEvaluationTests
+    public partial class SpfEvaluationTests
     {
 
         #region Setup
