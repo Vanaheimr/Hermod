@@ -246,6 +246,48 @@ var (connection, httpResponse) = await client.Connect();
 await client.SendTextMessage("[2,\"19223201\",\"BootNotification\",{}]");
 ```
 
+### Through a forward proxy
+
+Where only a proxy gets out, the client asks it with `CONNECT` (RFC 9110, Section 9.3.6) for a
+tunnel to the server. The TLS to the server, and the HTTP/1.1 or HTTP/2 the WebSocket is opened
+over, run inside the tunnel. The proxy sees the server's host and port, and nothing more.
+
+```csharp
+client.Proxy = new HTTPProxy(URL.Parse("https://proxy.example.org")) {
+                   TOTPConfig     = new TOTPConfig(sharedSecret, TLSChannelBinding: true),
+                   TOTPLogin      = "CP001",
+                   ServerKeyPins  = KeyPinPolicy.PinnedTo(proxyKeyPin)
+               };
+```
+
+Who is connecting is said to the proxy in `Proxy-Authorization`, by any HTTP authentication
+(`Authentication`, e.g. HTTP Basic) or by a one-time password under a login. A new one-time password
+is made for every connection, a reconnect included.
+
+- **Bound to the TLS to the proxy.** Where the TOTP configuration asks for TLS channel binding, the
+  password is made with keying material of the TLS connection to the proxy (RFC 8446, Section 7.5).
+  Read off that connection, it is no password on any other.
+- **What binding needs.** It needs an `https` proxy whose key is pinned (`ServerKeyPins`), because
+  only the TLS stack that checks key pins exports that material; SslStream does not.
+- **Nothing weaker than configured.** A binding that cannot be made is not sent unbound. `Connect`
+  refuses before anything is opened, as it does for these too:
+  - a login without a configuration;
+  - a configuration without a login;
+  - an HTTP authentication beside a TOTP login.
+- **Other `https` proxies.** An `https` proxy whose key is not pinned is checked by
+  `RemoteCertificateValidator`. Without one, its certificate must be valid for its host under the
+  roots of the operating system.
+
+A refusal comes back as what the proxy answered:
+
+- 407 where it was not told who is connecting, with its challenges in the body;
+- what else it answered;
+- 502 where it was not reached as configured.
+
+The client does not go on to the server after any of them. HTTP/3 is not tunnelled, because QUIC is
+no TCP connection a `CONNECT` could carry: a client told to use HTTP/3 alone refuses a proxy, and
+one left the choice does not follow an `Alt-Svc` to HTTP/3 while it has one.
+
 
 ## Over HTTP/2
 

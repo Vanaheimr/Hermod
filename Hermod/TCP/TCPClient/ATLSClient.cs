@@ -55,6 +55,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         protected Stream?    rawPublicKeyTLSStream;
 
+        /// <summary>
+        /// The tunnel through the forward proxy, where there is one: the stream
+        /// the TLS to the remote runs over, or the remote is spoken to over
+        /// where there is no TLS to it.
+        /// </summary>
+        private   HTTPProxyTunnel?  proxyTunnel;
+
         #endregion
 
         #region Properties
@@ -207,7 +214,44 @@ namespace org.GraphDefined.Vanaheimr.Hermod
 
         protected Stream? ActiveStream
 
-            => TLSStream ?? tcpClient?.GetStream();
+            => TLSStream ?? TransportStream;
+
+        /// <summary>
+        /// What the TLS to the remote runs over: the tunnel through the forward
+        /// proxy where there is one, and the TCP connection otherwise.
+        /// </summary>
+        protected Stream? TransportStream
+
+            => tcpClient is null
+                   ? null
+                   : proxyTunnel?.Stream ?? tcpClient.GetStream();
+
+        /// <summary>
+        /// The forward proxy the connection is tunnelled through with CONNECT,
+        /// or null to connect to the remote directly. Asked at every connect.
+        /// </summary>
+        protected HTTPProxy?                                             ForwardProxy                     { get; set; }
+
+        /// <summary>
+        /// What the TLS to the forward proxy came to, where the current
+        /// connection goes through an "https" proxy.
+        /// </summary>
+        public TLSSession?                                               ProxyTLSSession
+            => proxyTunnel?.ProxyTLSSession;
+
+        /// <summary>
+        /// Why the last connect did not get through the forward proxy, or null
+        /// where it did or there is none.
+        /// </summary>
+        protected HTTPProxyException?                                    ProxyFailure                     { get; private set; }
+
+        /// <summary>
+        /// The forward proxy's host and port, where there is one.
+        /// </summary>
+        protected override (String Host, IPPort Port)?                   ConnectVia
+            => ForwardProxy is HTTPProxy proxy
+                   ? (proxy.Host, proxy.Port)
+                   : null;
 
         public Boolean IsTLSActive
 
@@ -451,6 +495,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 try { rawPublicKeyTLSStream?.Dispose(); } catch { }
                 rawPublicKeyTLSStream = null;
 
+                try { proxyTunnel?.Stream.Dispose(); } catch { }
+                proxyTunnel = null;
+
                 TLSSession = null;
 
                 var tcpConnectionResult = await base.ReconnectAsync(CancellationToken);
@@ -513,7 +560,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             try
             {
 
-                var tcpStream = tcpClient.GetStream();
+                var tcpStream = TransportStream;
 
                 if (tcpStream is null)
                     return TCPConnectionResult.Failed($"{nameof(ATLSClient)}.{nameof(StartTLS)}.{nameof(tcpStream)} is null!");
@@ -773,6 +820,51 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             if (!TCPConnectionResult.IsSuccess)
                 return TCPConnectionResult;
 
+            #region Through a forward proxy: the tunnel first, and the TLS to the remote inside it
+
+            ProxyFailure = null;
+
+            // Of a connection before this one, which ReconnectAsync has not ended.
+            try { proxyTunnel?.Stream.Dispose(); } catch { }
+            proxyTunnel  = null;
+
+            if (ForwardProxy is HTTPProxy proxy)
+            {
+
+                var (targetHost, targetPort) = ProxyTarget();
+
+                try
+                {
+
+                    proxyTunnel = await HTTPProxyTunnel.OpenAsync(
+                                            tcpClient!.GetStream(),
+                                            proxy,
+                                            targetHost,
+                                            targetPort,
+                                            TLSHandshakeTimeout ?? ConnectTimeout,
+                                            CancellationToken
+                                        ).ConfigureAwait(false);
+
+                }
+                catch (HTTPProxyException e)
+                {
+
+                    ProxyFailure = e;
+
+                    ResolvedIPAddress = null;
+                    ResolvedIPAddresses.Clear();
+                    await Log($"No tunnel through the proxy {proxy}, closing the TCP connection: {e.Message}");
+
+                    await CloseConnection();
+
+                    return TCPConnectionResult.Failed($"{nameof(ATLSClient)}: {e.Message}");
+
+                }
+
+            }
+
+            #endregion
+
             if (EnforceTLS ||
                 RemoteURL.Scheme == URIScheme.tls   ||
                 RemoteURL.Scheme == URIScheme.https ||
@@ -800,6 +892,40 @@ namespace org.GraphDefined.Vanaheimr.Hermod
             }
 
             return TCPConnectionResult;
+
+        }
+
+        #endregion
+
+        #region (private)   ProxyTarget()
+
+        /// <summary>
+        /// What the forward proxy is asked for a tunnel to: the host of the
+        /// remote's URL, else its DNS name or IP address, and its port, else the
+        /// default port of its scheme.
+        /// </summary>
+        private (String Host, IPPort Port) ProxyTarget()
+        {
+
+            var host = !RemoteURL.IsNullOrEmpty
+                           ? RemoteURL.Host.ToString()
+                           : DomainName?.FullName.TrimEnd('.') ??
+                             RemoteIPAddress?.ToString() ??
+                             "";
+
+            // An IPv6 address is bracketed in an authority (RFC 3986, Section 3.2.2).
+            if (host.Contains(':') && !host.StartsWith('['))
+                host = $"[{host}]";
+
+            var port = RemoteURL.Port ??
+                       RemotePort     ??
+                       (RemoteURL.Scheme == URIScheme.https ||
+                        RemoteURL.Scheme == URIScheme.wss   ||
+                        RemoteURL.Scheme == URIScheme.tls
+                            ? IPPort.HTTPS
+                            : IPPort.HTTP);
+
+            return (host, port);
 
         }
 

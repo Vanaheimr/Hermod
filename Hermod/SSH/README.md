@@ -251,6 +251,15 @@ meaning; one carries at most 32 KiB, and one received may be 1 MiB at most. Both
 a received message is given to SSH before the next is read - 1 MiB may lie unread -, and a send is
 waited for before the next.
 
+Where only a forward proxy gets out, `SshWebSocketClient` is given it (`Proxy:`). The WebSocket is
+then opened in a `CONNECT` tunnel through the proxy. Who is connecting is said to the proxy in
+`Proxy-Authorization`, in the same ways as to the endpoint:
+
+- HTTP Basic or any other HTTP authentication;
+- a one-time password, which can be bound to the TLS to the proxy.
+
+See [Through a forward proxy](../HTTP1/WebSocket/README.md#through-a-forward-proxy).
+
 ## Algorithms
 
 | | Offered, in preference order |
@@ -382,8 +391,6 @@ Three things about them are worth knowing:
 ## Not here yet
 
 - **No compression.** `zlib@openssh.com` is not implemented; `none` is what we offer.
-- **SSH over WebSocket through a forward proxy.** `SshWebSocketClient` connects to the endpoint
-  itself; an HTTP `CONNECT` through a proxy, with its `Proxy-Authorization`, is not there yet.
 - **SFTP v3 only** — versions 4–6 are not negotiated. Of the OpenSSH extensions, `hardlink@openssh.com`
   is deliberately omitted because hard links would quietly defeat the per-session byte quota — that is a
   decision, not a gap. `home-directory` and `users-groups-by-id@openssh.com` are deliberately not

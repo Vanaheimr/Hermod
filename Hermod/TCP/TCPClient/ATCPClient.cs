@@ -234,6 +234,16 @@ namespace org.GraphDefined.Vanaheimr.Hermod
         /// </summary>
         public  SSH.NetworkAcl?                 RemoteNetworkAcl          { get; set; }
 
+        /// <summary>
+        /// Where the TCP connection goes in place of the remote, or null for the
+        /// remote itself: the host and port of a forward proxy the connection is
+        /// tunnelled through. The host is resolved as the remote's would be, the
+        /// DNS SRV records of the remote are not asked, and RemoteNetworkAcl is
+        /// checked against the addresses of that host.
+        /// </summary>
+        protected virtual (String Host, IPPort Port)?  ConnectVia
+            => null;
+
 
         /// <summary>
         /// Whether the client is currently connected to the.
@@ -733,6 +743,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 DomainName? dnsSRVRemoteHost   = null;
                 IPPort?     dnsSRVRemotePort   = null;
 
+                // A forward proxy: the connection goes to it, and the remote is
+                // asked for over it.
+                var         via                = ConnectVia;
+
                 // IPvXAddress.Localhost - what the port-only constructors and
                 // ConnectNew connect to - is both loopback addresses, and the
                 // preference picks one of them below, as it does for a host name
@@ -741,19 +755,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 // IPv6Only found nothing and failed without connecting, and
                 // PreferIPv4 fell back to it and connected to what ToDotNet() makes
                 // of it, [::1].
-                if (RemoteIPAddress is IPvXAddress { IsLocalhost: true })
+                if (via is null && RemoteIPAddress is IPvXAddress { IsLocalhost: true })
                 {
                     ResolvedIPAddresses.Add(IPv4Address.Localhost);
                     ResolvedIPAddresses.Add(IPv6Address.Localhost);
                 }
 
-                else if (RemoteIPAddress is not null)
+                else if (via is null && RemoteIPAddress is not null)
                     ResolvedIPAddresses.Add(RemoteIPAddress.Value);
 
                 if (ResolvedIPAddresses.Count == 0)
                 {
 
-                    var hostname = (DomainName?.FullName ?? RemoteURL.Host.ToString())?.Trim() ?? "";
+                    var hostname = (via?.Host ?? DomainName?.FullName ?? RemoteURL.Host.ToString())?.Trim() ?? "";
 
                     #region URL looks like an IP address / Localhost...
 
@@ -792,6 +806,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                     #region DNS SRV    lookups...
 
                     if (ResolvedIPAddresses.Count == 0         &&
+                        via                 is null            &&
                         DNSService.         IsNotNullOrEmpty() &&
                         DNSClient           is not null)
                     {
@@ -895,12 +910,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod
                 if (ResolvedIPAddresses.Count > 0)
                 {
 
-                    var remotePort   = RemoteURL.Port ?? dnsSRVRemotePort ?? RemotePort;
+                    var remotePort   = via?.Port ?? RemoteURL.Port ?? dnsSRVRemotePort ?? RemotePort;
 
                     if (!remotePort.HasValue)
                         return TCPConnectionResult.Failed("The remote TCP port must not be null!");
 
-                    RemotePort     ??= remotePort;
+                    // The port of the remote, which a proxy's is not.
+                    if (via is null)
+                        RemotePort ??= remotePort;
 
                     // Every address, not only the first: any of them may be connected to below.
                     if (RemoteNetworkAcl is SSH.NetworkAcl remoteNetworkAcl &&

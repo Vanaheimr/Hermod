@@ -42,6 +42,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// Who this end is to the HTTP server is said as by any WebSocket client: HTTP
     /// Basic or any other HTTP authentication, a one-time password - bound to the TLS
     /// connection or not -, a client certificate. Who is who is said again by SSH.
+    /// Through a forward proxy, the WebSocket is opened in a CONNECT tunnel, and who
+    /// this end is to the proxy is said in Proxy-Authorization, in the same ways.
     /// </remarks>
     public class SshWebSocketClient : WebSocketClient
     {
@@ -83,6 +85,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="WebSocketPingEvery">The ping interval.</param>
         /// <param name="ConnectTimeout">How long to wait for the TCP connection.</param>
         /// <param name="DNSClient">The DNS client to resolve the URL's host with.</param>
+        /// <param name="Proxy">An optional forward proxy to open the WebSocket through, told who is connecting by any HTTP authentication or a one-time password.</param>
         public SshWebSocketClient(URL                                                             URL,
                                   IHTTPAuthentication?                                            HTTPAuthentication           = null,
                                   RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
@@ -93,7 +96,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                   Boolean                                                         DisableWebSocketPings        = false,
                                   TimeSpan?                                                       WebSocketPingEvery           = null,
                                   TimeSpan?                                                       ConnectTimeout               = null,
-                                  IDNSClient?                                                     DNSClient                    = null)
+                                  IDNSClient?                                                     DNSClient                    = null,
+                                  HTTPProxy?                                                      Proxy                        = null)
 
             : base(URL,
                    HTTPAuthentication:          HTTPAuthentication,
@@ -113,13 +117,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             EnablePerMessageDeflate  = false;
             ReconnectPolicy          = null;
             MaxBinaryMessageSizeIn   = SshOverWebSocket.MaxIncomingMessageSize;
+            this.Proxy               = Proxy;
 
         }
 
         #endregion
 
 
-        #region ConnectAsync (CancellationToken = default)
+        #region OpenAsync (CancellationToken = default)
 
         /// <summary>
         /// Open the WebSocket and give back the pipe SSH runs on - once: a second call
@@ -127,7 +132,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// </summary>
         /// <param name="CancellationToken">An optional cancellation token.</param>
         /// <exception cref="SshWebSocketException">The server did not take the upgrade, or not with SSH over WebSocket.</exception>
-        public async Task<DuplexPipe> ConnectAsync(CancellationToken CancellationToken = default)
+        public async Task<DuplexPipe> OpenAsync(CancellationToken CancellationToken = default)
         {
 
             if (bridge is not null || Networking is not null)
@@ -162,7 +167,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region (private) BridgeFor (Connection)
 
-        // Made by whatever comes first: ConnectAsync, or the first message - an SSH
+        // Made by whatever comes first: OpenAsync, or the first message - an SSH
         // server at the other end says who it is as soon as the 101 is out, and that
         // may be read before Connect() has come back.
         private WebSocketSshBridge BridgeFor(WebSocketClientConnection Connection)
