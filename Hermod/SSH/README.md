@@ -36,7 +36,7 @@ the interesting mistakes live. The ChaCha20 core is ours too, and vectorised
 | `Forwarding/` | `NetworkAcl` and the `ForwardingPolicy` presets for `direct-tcpip` and `tcpip-forward` |
 | `Recording/` | Session recording: asciicast v2 and an SFTP transcript |
 | `Messaging/` | Whole messages over a subsystem channel: `SshMessageServer`, `SshMessageClient`, the frames - see its README |
-| `OverWebSocket/` | SSH over WebSocket: `WebSocketSshBridge`, `SshWebSocketEndpoint`, `SshWebSocketClient` |
+| `OverWebSocket/` | SSH over WebSocket: `WebSocketSshBridge`, `SshWebSocketEndpoint`, `SshWebSocketServer`, `SshWebSocketClient` |
 | `Client/` | The high-level `SSHClient` façade |
 | `Server/` | The high-level `SshServer` façade |
 
@@ -188,6 +188,20 @@ ForwardingPolicy.Custom(NetworkAcl.DenyByDefault()
 `ProxyJump` chains connections the way `ssh -J` does: the tunnel opened on the first hop becomes
 the transport of the second.
 
+A destination can also be one of the application's rather than the network's. `Destinations` is
+asked first for every `direct-tcpip`, which is what `ssh -J` and `ssh -W` open. Where it answers
+with a handler, the channel goes wherever the handler takes it, and nothing on the network is
+connected to. A CSMS uses this to serve `ssh -J operator@csms operator@CP001`: it takes "CP001" to
+the station's tunnel, and SSH runs end to end with the station. Where it answers null, the channel
+is a port forwarding as before.
+
+```csharp
+Destinations = (session, host, port, ct) => ValueTask.FromResult<SshDestinationHandler?>(
+                   tunnels.TryGet(host, session, out var pipe)
+                       ? (context, token) => new ValueTask(context.RelayAsync(pipe, token))
+                       : null)
+```
+
 ### Subsystems of your own, and messages over them
 
 `SshServerOptions.Subsystems` serves subsystems besides SFTP, session by session. The factory is
@@ -251,12 +265,29 @@ meaning; one carries at most 32 KiB, and one received may be 1 MiB at most. Both
 a received message is given to SSH before the next is read - 1 MiB may lie unread -, and a send is
 waited for before the next.
 
+`SshWebSocketServer` is the same on a WebSocket server rather than on an HTTP path. It listens on a
+port of its own, or it is handed its WebSockets by another server with `RouteBySubprotocol`. The
+second way gives one port for OCPP and SSH: a charging station reaches SSH where it reaches OCPP,
+and is told apart from OCPP by the subprotocol. Such a server knows the clients it was told of. An
+override of `AuthenticateAsync` can know those of the server it is routed from.
+
+A refusal comes back as `SshWebSocketException`, with the HTTP status it was given.
+
+`SshWebSocketClient.Like(client, url)` goes where an existing WebSocket client goes, and in the same
+way. It takes that client's HTTP authentication or one-time password, its client certificates, its
+validator and key pins, its proxy and its timeouts. A station opens its tunnel like this, to the
+server it speaks OCPP with. It works for the same origin only: a URL of another scheme, host or port
+is refused, so the station's credentials are never sent elsewhere.
+
 Where only a forward proxy gets out, `SshWebSocketClient` is given it (`Proxy:`). The WebSocket is
 then opened in a `CONNECT` tunnel through the proxy. Who is connecting is said to the proxy in
 `Proxy-Authorization`, in the same ways as to the endpoint:
 
 - HTTP Basic or any other HTTP authentication;
 - a one-time password, which can be bound to the TLS to the proxy.
+
+A refusal by the proxy has `FromProxy` set and carries the proxy's status as it sent it. The server
+was never reached.
 
 See [Through a forward proxy](../HTTP1/WebSocket/README.md#through-a-forward-proxy).
 

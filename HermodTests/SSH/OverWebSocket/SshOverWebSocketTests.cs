@@ -371,7 +371,10 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
             var refused = await Assert.ThrowsAsync<SshWebSocketException>(async () => await SSHClient.Connect(anonymous, AnSshClient(), CancellationToken));
 
-            Assert.That(refused!.HTTPStatusCode, Is.EqualTo(HTTPStatusCode.Unauthorized));
+            Assert.Multiple(() => {
+                Assert.That(refused.HTTPStatusCode,  Is.EqualTo(HTTPStatusCode.Unauthorized));
+                Assert.That(refused.FromProxy,       Is.False);
+            });
 
             using var       station  = new SshWebSocketClient(url, HTTPAuthentication: HTTPBasicAuthentication.Create("CP001", "the station's password"));
             await using var client   = await SSHClient.Connect(station, AnSshClient(), CancellationToken);

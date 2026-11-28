@@ -17,7 +17,6 @@
 
 #region Usings
 
-using System.Collections.Concurrent;
 using System.IO.Pipelines;
 
 using Microsoft.Extensions.Logging;
@@ -113,8 +112,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         #region Data
 
-        private readonly ConcurrentDictionary<WebSocketServerConnection, WebSocketSshBridge>  bridges   = new ();
-        private readonly ConcurrentDictionary<WebSocketServerConnection, Task>                handlers  = new ();
+        private readonly SshWebSocketSessions  sessions;
 
         #endregion
 
@@ -138,7 +136,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <summary>
         /// How many SSH connections run now.
         /// </summary>
-        public Int32                          SshConnections  => handlers.Count;
+        public Int32                          SshConnections  => sessions.Count;
 
         #endregion
 
@@ -175,52 +173,8 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
         {
 
-            this.OnConnection             = OnConnection;
-
-            // A client that does not offer SSH over WebSocket is answered 400, and
-            // what it sends is never read as SSH.
-            RequireMatchingSubprotocol    = true;
-            EnablePerMessageDeflate       = false;
-
-            MaxBinaryMessageSizeIn        = SshOverWebSocket.MaxIncomingMessageSize;
-            MaxTextMessageSizeIn          = 125;
-
-            OnValidateWebSocketConnection += OffersSSH;
-            OnNewWebSocketConnection      += Started;
-            OnTCPConnectionClosed         += Closed;
-
-        }
-
-        #endregion
-
-
-        #region (private) OffersSSH (...)
-
-        // RequireMatchingSubprotocol turns away a client that offers other
-        // subprotocols alone; one that offers none at all would be taken, and what
-        // it sends read as SSH. Here SSH over WebSocket has to be asked for.
-        private Task<HTTPResponse?> OffersSSH(DateTimeOffset             Timestamp,
-                                              AWebSocketEndpoint         Server,
-                                              WebSocketServerConnection  Connection,
-                                              EventTracking_Id           EventTrackingId,
-                                              CancellationToken          CancellationToken)
-        {
-
-            if (Connection.HTTPRequest is not HTTPRequest request ||
-                request.SecWebSocketProtocol.Contains(SshOverWebSocket.Subprotocol))
-            {
-                return Task.FromResult<HTTPResponse?>(null);
-            }
-
-            return Task.FromResult<HTTPResponse?>(
-                       new HTTPResponse.Builder(request) {
-                           HTTPStatusCode  = HTTPStatusCode.BadRequest,
-                           Server          = HTTPServiceName,
-                           Connection      = ConnectionType.Close,
-                           ContentType     = HTTPContentType.Text.PLAIN,
-                           Content         = $"SSH over WebSocket is asked for by the subprotocol '{SshOverWebSocket.Subprotocol}', and nothing else is spoken here.".ToUTF8Bytes()
-                       }.AsImmutable
-                   );
+            this.OnConnection  = OnConnection;
+            this.sessions      = new SshWebSocketSessions(this, OnConnection, () => MessageSize, () => ReceiveBuffer, Logger);
 
         }
 
@@ -241,7 +195,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                   Byte[]                     BinaryMessage,
                                                   CancellationToken          CancellationToken)
 
-            => BridgeOf(Connection).ReceivedAsync(BinaryMessage, CancellationToken);
+            => sessions.BinaryReceived(Connection, BinaryMessage, CancellationToken);
 
         #endregion
 
@@ -258,104 +212,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                                 String                     TextMessage,
                                                 CancellationToken          CancellationToken)
 
-            => BridgeOf(Connection).TextReceivedAsync(CancellationToken);
-
-        #endregion
-
-
-        #region (private) BridgeOf (Connection)
-
-        // One bridge a connection, made by whatever comes first - the connection's
-        // start, or a message that came in before the start was told of.
-        private WebSocketSshBridge BridgeOf(WebSocketServerConnection Connection)
-
-            => bridges.GetOrAdd(Connection,
-                                connection => {
-
-                                    connection.MaxBinaryMessageSizeIn = SshOverWebSocket.MaxIncomingMessageSize;
-
-                                    var bridge = new WebSocketSshBridge(connection,
-                                                                        connection.LocalSocket,
-                                                                        connection.RemoteSocket,
-                                                                        MessageSize,
-                                                                        ReceiveBuffer);
-
-                                    // However the connection ends, it ends what SSH reads.
-                                    connection.CancellationTokenSource.Token.Register(() => _ = bridge.EndAsync());
-
-                                    return bridge;
-
-                                });
-
-        #endregion
-
-        #region (private) Started  (...)
-
-        // The connection is a WebSocket now: SSH runs on it off the connection's own
-        // loop, which has to go on reading for SSH to read anything.
-        private Task Started(DateTimeOffset             Timestamp,
-                             AWebSocketEndpoint         Server,
-                             WebSocketServerConnection  Connection,
-                             IEnumerable<String>        SharedSubprotocols,
-                             String?                    SelectedSubprotocol,
-                             EventTracking_Id           EventTrackingId,
-                             CancellationToken          CancellationToken)
-        {
-
-            var bridge  = BridgeOf(Connection);
-            var token   = Connection.CancellationTokenSource.Token;
-
-            handlers[Connection] = Task.Run(async () => {
-
-                try
-                {
-                    await OnConnection(new SshWebSocketConnection(bridge.Pipe, Connection), token).ConfigureAwait(false);
-                }
-                catch (Exception exception) when (!token.IsCancellationRequested)
-                {
-                    Logger.LogWarning(exception, "SSH over the WebSocket from {RemoteSocket} ended with an error.", Connection.RemoteSocket);
-                }
-                catch
-                { }
-                finally
-                {
-
-                    // What ran on it is done: so is the WebSocket.
-                    await bridge.CloseAsync(MessageCloseCode.NormalClosure, null).ConfigureAwait(false);
-
-                    handlers.TryRemove(Connection, out _);
-                    bridges. TryRemove(Connection, out _);
-
-                }
-
-            });
-
-            return Task.CompletedTask;
-
-        }
-
-        #endregion
-
-        #region (private) Closed   (...)
-
-        private Task Closed(DateTimeOffset             Timestamp,
-                            AWebSocketEndpoint         Server,
-                            WebSocketServerConnection  Connection,
-                            EventTracking_Id           EventTrackingId,
-                            String?                    Reason,
-                            CancellationToken          CancellationToken)
-        {
-
-            if (bridges.TryGetValue(Connection, out var bridge))
-                _ = bridge.EndAsync();
-
-            // A connection that never became a WebSocket has no handler to remove it.
-            if (!handlers.ContainsKey(Connection))
-                bridges.TryRemove(Connection, out _);
-
-            return Task.CompletedTask;
-
-        }
+            => sessions.TextReceived(Connection, CancellationToken);
 
         #endregion
 
@@ -368,15 +225,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         public override async ValueTask DisposeAsync()
         {
 
-            foreach (var bridge in bridges.Values)
-                await bridge.CloseAsync(MessageCloseCode.GoingAway, null).ConfigureAwait(false);
-
-            try
-            {
-                await Task.WhenAll(handlers.Values).WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false);
-            }
-            catch
-            { }
+            await sessions.CloseAllAsync().ConfigureAwait(false);
 
             await base.DisposeAsync().ConfigureAwait(false);
 

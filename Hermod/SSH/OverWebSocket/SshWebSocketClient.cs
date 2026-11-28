@@ -17,6 +17,8 @@
 
 #region Usings
 
+using System.Net.Security;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 
 using org.GraphDefined.Vanaheimr.Illias;
@@ -86,6 +88,11 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
         /// <param name="ConnectTimeout">How long to wait for the TCP connection.</param>
         /// <param name="DNSClient">The DNS client to resolve the URL's host with.</param>
         /// <param name="Proxy">An optional forward proxy to open the WebSocket through, told who is connecting by any HTTP authentication or a one-time password.</param>
+        /// <param name="TLSHostname">The name for SNI and the server's certificate, where it is not the URL's host.</param>
+        /// <param name="LocalCertificateSelector">Selects the TLS client certificate to show.</param>
+        /// <param name="ClientCertificateContext">The TLS client certificate with its intermediates.</param>
+        /// <param name="ClientCertificateChain">The TLS client certificate chain.</param>
+        /// <param name="TLSProtocols">The TLS versions to speak.</param>
         public SshWebSocketClient(URL                                                             URL,
                                   IHTTPAuthentication?                                            HTTPAuthentication           = null,
                                   RemoteTLSServerCertificateValidationHandler<IWebSocketClient>?  RemoteCertificateValidator   = null,
@@ -97,7 +104,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                                   TimeSpan?                                                       WebSocketPingEvery           = null,
                                   TimeSpan?                                                       ConnectTimeout               = null,
                                   IDNSClient?                                                     DNSClient                    = null,
-                                  HTTPProxy?                                                      Proxy                        = null)
+                                  HTTPProxy?                                                      Proxy                        = null,
+                                  String?                                                         TLSHostname                  = null,
+                                  LocalCertificateSelectionHandler?                               LocalCertificateSelector     = null,
+                                  SslStreamCertificateContext?                                    ClientCertificateContext     = null,
+                                  IEnumerable<X509Certificate2>?                                  ClientCertificateChain       = null,
+                                  SslProtocols?                                                   TLSProtocols                 = null)
 
             : base(URL,
                    HTTPAuthentication:          HTTPAuthentication,
@@ -105,8 +117,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
                    RequestTimeout:              RequestTimeout,
                    DisableWebSocketPings:       DisableWebSocketPings,
                    WebSocketPingEvery:          WebSocketPingEvery,
+                   TLSHostname:                 TLSHostname,
                    RemoteCertificateValidator:  RemoteCertificateValidator,
+                   LocalCertificateSelector:    LocalCertificateSelector,
                    ClientCertificates:          ClientCertificates,
+                   ClientCertificateContext:    ClientCertificateContext,
+                   ClientCertificateChain:      ClientCertificateChain,
+                   TLSProtocols:                TLSProtocols,
                    TOTPConfig:                  TOTPConfig,
                    TOTPLogin:                   TOTPLogin,
                    ConnectTimeout:              ConnectTimeout,
@@ -118,6 +135,76 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
             ReconnectPolicy          = null;
             MaxBinaryMessageSizeIn   = SshOverWebSocket.MaxIncomingMessageSize;
             this.Proxy               = Proxy;
+
+        }
+
+        #endregion
+
+
+        #region (static) Like (Template, URL)
+
+        /// <summary>
+        /// A client for SSH over WebSocket that goes where the given client goes, and
+        /// as it goes: with its HTTP authentication or one-time password, its client
+        /// certificates, its validator of the server's certificate and its key pins,
+        /// its proxy and its timeouts. A charging station opens its tunnel so, to the
+        /// server it speaks OCPP with.
+        /// </summary>
+        /// <remarks>
+        /// Only to the same origin - scheme, host and port - as the template: what
+        /// the template shows the server is shown to that server alone, and a URL
+        /// that somebody else hands in leads nowhere else.
+        /// </remarks>
+        /// <param name="Template">The client whose server, and ways, to take.</param>
+        /// <param name="URL">Where on the template's server the endpoint is.</param>
+        /// <exception cref="ArgumentException">The URL is not of the template's origin.</exception>
+        public static SshWebSocketClient Like(WebSocketClient  Template,
+                                              URL              URL)
+        {
+
+            if (!SameOrigin(Template.RemoteURL, URL))
+                throw new ArgumentException($"'{URL}' is not where '{Template.RemoteURL}' is: a client's credentials go to its own server alone.", nameof(URL));
+
+            return new SshWebSocketClient(
+                       URL,
+                       HTTPAuthentication:          Template.HTTPAuthentication,
+                       RemoteCertificateValidator:  Template.RemoteCertificateValidator,
+                       ClientCertificates:          Template.ClientCertificates,
+                       TOTPConfig:                  Template.TOTPConfig,
+                       TOTPLogin:                   Template.TOTPLogin,
+                       RequestTimeout:              Template.RequestTimeout,
+                       ConnectTimeout:              Template.ConnectTimeout,
+                       DNSClient:                   Template.DNSClient,
+                       Proxy:                       Template.Proxy,
+                       TLSHostname:                 Template.TLSHostname,
+                       LocalCertificateSelector:    Template.LocalCertificateSelector,
+                       ClientCertificateContext:    Template.ClientCertificateContext,
+                       ClientCertificateChain:      Template.ClientCertificateChain,
+                       TLSProtocols:                Template.TLSProtocols
+                   ) {
+                       ServerKeyPins            = Template.ServerKeyPins,
+                       OnServerKeyPinValidated  = Template.OnServerKeyPinValidated
+                   };
+
+        }
+
+        #endregion
+
+        #region (static) SameOrigin (A, B)
+
+        /// <summary>
+        /// Whether two URLs are of the same origin: scheme, host and port, the port of
+        /// the scheme where none is given.
+        /// </summary>
+        public static Boolean SameOrigin(URL A, URL B)
+        {
+
+            static IPPort PortOf(URL url)
+                => url.Port ?? (url.Scheme == URIScheme.wss || url.Scheme == URIScheme.https ? IPPort.HTTPS : IPPort.HTTP);
+
+            return A.Scheme == B.Scheme                                                                 &&
+                   String.Equals(A.Host.ToString(), B.Host.ToString(), StringComparison.OrdinalIgnoreCase) &&
+                   PortOf(A) == PortOf(B);
 
         }
 
@@ -142,8 +229,19 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
             if (connection is null || response.HTTPStatusCode != HTTPStatusCode.SwitchingProtocols)
             {
+
                 await Close().ConfigureAwait(false);
+
+                // Turned away before the server was reached: the proxy's answer, as
+                // it came - a 401 or 403 of a proxy is not one of the server's.
+                if (ProxyFailure is HTTPProxyException proxyFailure)
+                    throw new SshWebSocketException($"The proxy {Proxy} did not open a tunnel to the server: {proxyFailure.HTTPStatusCode?.ToString() ?? proxyFailure.Message}",
+                                                    proxyFailure.HTTPStatusCode ?? response.HTTPStatusCode,
+                                                    FromProxy:       true,
+                                                    InnerException:  proxyFailure);
+
                 throw new SshWebSocketException($"The server did not take the upgrade to SSH over WebSocket: {response.HTTPStatusCode}.", response.HTTPStatusCode);
+
             }
 
             if (connection.Subprotocol != SshOverWebSocket.Subprotocol)
@@ -244,20 +342,34 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
 
     /// <summary>
     /// SSH over WebSocket could not be begun: the server did not take the upgrade,
-    /// or took it without the subprotocol of SSH over WebSocket.
+    /// or took it without the subprotocol of SSH over WebSocket - or a forward proxy
+    /// did not open a tunnel to the server.
     /// </summary>
     /// <param name="Message">What went wrong.</param>
-    /// <param name="HTTPStatusCode">The HTTP status the server answered with.</param>
+    /// <param name="HTTPStatusCode">The HTTP status the server, or the proxy, answered with.</param>
+    /// <param name="FromProxy">Whether the forward proxy answered, and the server was never reached.</param>
+    /// <param name="InnerException">The proxy's refusal, where it was the proxy.</param>
     public sealed class SshWebSocketException(String          Message,
-                                              HTTPStatusCode  HTTPStatusCode) : IOException(Message)
+                                              HTTPStatusCode  HTTPStatusCode,
+                                              Boolean         FromProxy        = false,
+                                              Exception?      InnerException   = null) : IOException(Message, InnerException)
     {
 
         /// <summary>
         /// The HTTP status the server answered with - 401 where the HTTP
         /// authentication was not accepted, 400 where SSH over WebSocket is not
-        /// spoken there.
+        /// spoken there -, or, where <see cref="FromProxy"/> is set, the status of
+        /// the proxy as it sent it: 407 where it was not told who is connecting,
+        /// and whatever else it answered (a 401 of a proxy that does not say 407,
+        /// a 403 for a port it does not open); 502 where it was not reached as
+        /// configured.
         /// </summary>
-        public HTTPStatusCode HTTPStatusCode { get; } = HTTPStatusCode;
+        public HTTPStatusCode  HTTPStatusCode    { get; } = HTTPStatusCode;
+
+        /// <summary>
+        /// Whether the forward proxy answered, and the server was never reached.
+        /// </summary>
+        public Boolean         FromProxy         { get; } = FromProxy;
 
     }
 
