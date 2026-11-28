@@ -163,6 +163,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
         public SshSubsystemFactory?                 Subsystems        { get; init; }
 
         /// <summary>
+        /// Serves destinations of <c>direct-tcpip</c> channels that are the application's rather than the
+        /// network's - <c>ssh -J operator@csms operator@CP001</c>, where the server takes "CP001" to a tunnel
+        /// to that station. Asked before any port forwarding: a destination it answers for is no port
+        /// forwarding, and one it answers null for is one as before - see <see cref="SshDestinationFactory"/>.
+        /// </summary>
+        public SshDestinationFactory?               Destinations      { get; init; }
+
+        /// <summary>
         /// The port-forwarding policy (default: off).
         /// </summary>
         public ForwardingPolicy                     ForwardingPolicy  { get; init; } = ForwardingPolicy.None;
@@ -272,6 +280,12 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             public CancellationTokenSource  Ending    { get; } = CancellationTokenSource.CreateLinkedTokenSource(ServerToken);
             public Int32                    Sessions;
             public Int32                    DirectTcpIp;
+
+            /// <summary>
+            /// The handlers of the destinations answered for, by the open data of their channels -
+            /// the very bytes the channel is made with, taken from here once it is.
+            /// </summary>
+            public readonly ConcurrentDictionary<Byte[], SshDestinationHandler> Destinations = new (ReferenceEqualityComparer.Instance);
             public Int32                    Authenticated;
 
             public void Dispose()
@@ -730,7 +744,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 transport.Rekeyed = count => _ = EmitAsync(audit, new RekeyedEvent(DateTimeOffset.UtcNow, count)).AsTask();
 
-                mux.ChannelAcceptor = info => AcceptChannelAsync(info, auth.Restrictions, Connection);
+                mux.ChannelAcceptor = info => AcceptChannelAsync(info, session, Connection);
 
                 // no-port-forwarding / restrict and a certificate without permit-port-forwarding narrow -R
                 // exactly as they narrow -L in AcceptChannelAsync: the stricter side wins.
@@ -923,8 +937,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
                 else if (channel.ChannelType == "direct-tcpip")
                 {
-                    var relayed = ServeDirectTcpIpAsync(channel, token);
+
+                    var relayed = Connection.Destinations.TryRemove(channel.OpenData, out var destination)
+                                      ? ServeDestinationAsync(channel, Session, destination, token)
+                                      : ServeDirectTcpIpAsync(channel, token);
+
                     _ = relayed.ContinueWith(_ => Interlocked.Decrement(ref Connection.DirectTcpIp), TaskScheduler.Default);
+
                 }
 
             }
@@ -933,12 +952,14 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
 
         #endregion
 
-        #region (private) AcceptChannelAsync(Info, Restrictions, Connection)
+        #region (private) AcceptChannelAsync(Info, Session, Connection)
 
-        private async ValueTask<Boolean> AcceptChannelAsync(SshChannelOpenInfo      Info,
-                                                            SshSessionRestrictions  Restrictions,
-                                                            Connection              Connection)
+        private async ValueTask<Boolean> AcceptChannelAsync(SshChannelOpenInfo  Info,
+                                                            SshSessionInfo      Session,
+                                                            Connection          Connection)
         {
+
+            var Restrictions = Session.Restrictions;
 
             if (stopping.IsCancellationRequested)
                 return false;
@@ -957,6 +978,46 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                 }
 
                 return true;
+
+            }
+
+            // A destination of the application's: asked first, and no port forwarding where it answers.
+            if (Info.ChannelType == "direct-tcpip" && options.Destinations is SshDestinationFactory destinations)
+            {
+
+                if (Interlocked.Increment(ref Connection.DirectTcpIp) > options.Limits.MaxDirectTcpIp)
+                {
+                    Interlocked.Decrement(ref Connection.DirectTcpIp);
+                    await EmitAsync(Connection.Audit, new LimitExceededEvent(DateTimeOffset.UtcNow, "direct-tcpip", $"{options.Limits.MaxDirectTcpIp} forwarding channel(s) are open on this connection")).ConfigureAwait(false);
+                    return false;
+                }
+
+                var (destinationHost, destinationPort) = ParseDirectTcpIp(Info.TypeData);
+
+                SshDestinationHandler? handler = null;
+
+                // Bounded, so that a slow answer cannot stall the multiplexer receive loop.
+                using var askingCts = CancellationTokenSource.CreateLinkedTokenSource(Connection.Ending.Token);
+                askingCts.CancelAfter(TimeSpan.FromSeconds(5));
+
+                try
+                {
+                    handler = await destinations(Session, destinationHost, destinationPort, askingCts.Token).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    Interlocked.Decrement(ref Connection.DirectTcpIp);
+                    await EmitAsync(Connection.Audit, new PolicyDeniedEvent(DateTimeOffset.UtcNow, "direct-tcpip", $"{destinationHost}:{destinationPort}", e.Message)).ConfigureAwait(false);
+                    return false;
+                }
+
+                if (handler is not null)
+                {
+                    Connection.Destinations[Info.TypeData] = handler;
+                    return true;
+                }
+
+                Interlocked.Decrement(ref Connection.DirectTcpIp);
 
             }
 
@@ -1234,6 +1295,49 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
             }
             catch
             { }
+        }
+
+        #endregion
+
+        #region (private) ServeDestinationAsync(Channel, Session, Handler, CancellationToken)
+
+        /// <summary>
+        /// Serve a destination the factory answered for: the handler is told when the client closed the
+        /// channel and when the server is stopping, and once it returns - or fails - the channel is closed.
+        /// </summary>
+        private async Task ServeDestinationAsync(SshMuxChannel          Channel,
+                                                 SshSessionInfo         Session,
+                                                 SshDestinationHandler  Handler,
+                                                 CancellationToken      CancellationToken)
+        {
+
+            using var closed  = new CancellationTokenSource();
+            using var ended   = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, stopping.Token, closed.Token);
+
+            _ = Channel.Closed.ContinueWith(_ => {
+                    try { closed.Cancel(); } catch (ObjectDisposedException) { }
+                }, TaskScheduler.Default);
+
+            try
+            {
+
+                var (host, port) = ParseDirectTcpIp(Channel.OpenData);
+
+                await Handler(new SshDestinationContext(Session, host, port, Channel, closed.Token, stopping.Token), ended.Token).ConfigureAwait(false);
+
+            }
+            catch
+            { }
+            finally
+            {
+                try
+                {
+                    await Channel.CloseAsync(CancellationToken.None).ConfigureAwait(false);
+                }
+                catch
+                { }
+            }
+
         }
 
         #endregion

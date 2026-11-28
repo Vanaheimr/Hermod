@@ -188,6 +188,20 @@ ForwardingPolicy.Custom(NetworkAcl.DenyByDefault()
 `ProxyJump` chains connections the way `ssh -J` does: the tunnel opened on the first hop becomes
 the transport of the second.
 
+A destination can also be one of the application's rather than the network's. `Destinations` is
+asked first for every `direct-tcpip`, which is what `ssh -J` and `ssh -W` open. Where it answers
+with a handler, the channel goes wherever the handler takes it, and nothing on the network is
+connected to. A CSMS uses this to serve `ssh -J operator@csms operator@CP001`: it takes "CP001" to
+the station's tunnel, and SSH runs end to end with the station. Where it answers null, the channel
+is a port forwarding as before.
+
+```csharp
+Destinations = (session, host, port, ct) => ValueTask.FromResult<SshDestinationHandler?>(
+                   tunnels.TryGet(host, session, out var pipe)
+                       ? (context, token) => new ValueTask(context.RelayAsync(pipe, token))
+                       : null)
+```
+
 ### Subsystems of your own, and messages over them
 
 `SshServerOptions.Subsystems` serves subsystems besides SFTP, session by session. The factory is
