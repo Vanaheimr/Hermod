@@ -37,7 +37,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH
     /// <see cref="SshWebSocketServer"/> on a port of its own - or on another server's,
     /// routed there by the subprotocol - have in common.
     /// </summary>
-    internal sealed class SshWebSocketSessions
+    /// <remarks>
+    /// For a WebSocket server of another kind that is to speak SSH over WebSocket as
+    /// well - one that knows its clients its own way, say: made in its constructor,
+    /// and handed its binary and text messages from its overrides of
+    /// ProcessBinaryMessage and ProcessTextMessage.
+    /// </remarks>
+    public sealed class SshWebSocketSessions
     {
 
         #region Data
