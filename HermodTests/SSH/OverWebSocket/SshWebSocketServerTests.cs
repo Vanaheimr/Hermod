@@ -236,6 +236,50 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Tests
 
         #endregion
 
+        #region Like_GoesWhereTheTemplateGoes_AndNowhereElse
+
+        /// <summary>
+        /// A client made like the station's OCPP client goes to the same server with the
+        /// same credentials, and is let in by them; a URL of another origin - another
+        /// port, another scheme, another host - is refused before anything is sent.
+        /// </summary>
+        [Test]
+        [CancelAfter(30000)]
+        public async Task Like_GoesWhereTheTemplateGoes_AndNowhereElse(CancellationToken CancellationToken)
+        {
+
+            await using var sshServer  = AnSshServer();
+
+            await using var ocpp       = new WebSocketMirrorServer(HTTPPort:               IPPort.Zero,
+                                                                   RequireAuthentication:  false,
+                                                                   SecWebSocketProtocols:  [ "ocpp2.1" ],
+                                                                   AutoStart:              true);
+
+            await using var ssh        = new KnowsOneStation((connection, ct) => sshServer.ServeAsync(connection.Pipe, CancellationToken: ct));
+
+            ocpp.RouteBySubprotocol(ssh);
+
+            await using var template   = new WebSocketClient(URL.Parse($"ws://127.0.0.1:{ocpp.IPPort}/ocpp/CP001"),
+                                                             HTTPAuthentication:     HTTPBasicAuthentication.Create("CP001", "station-password"),
+                                                             SecWebSocketProtocols:  [ "ocpp2.1" ]);
+
+            Assert.Multiple(() => {
+                Assert.Throws<ArgumentException>(() => SshWebSocketClient.Like(template, URL.Parse($"ws://127.0.0.1:{ocpp.IPPort.ToUInt16() + 1}/")));
+                Assert.Throws<ArgumentException>(() => SshWebSocketClient.Like(template, URL.Parse($"wss://127.0.0.1:{ocpp.IPPort}/")));
+                Assert.Throws<ArgumentException>(() => SshWebSocketClient.Like(template, URL.Parse($"ws://127.0.0.2:{ocpp.IPPort}/")));
+            });
+
+            using var       webSocket  = SshWebSocketClient.Like(template, URL.Parse($"ws://127.0.0.1:{ocpp.IPPort}/ocpp/CP001?sshTunnel=t1"));
+            await using var client     = await SSHClient.Connect(webSocket, AnSshClient(), CancellationToken);
+
+            var result = await client.Execute("whoami", CancellationToken);
+
+            Assert.That(result.StandardOutput, Is.EqualTo("ran: whoami\n"));
+
+        }
+
+        #endregion
+
     }
 
 }

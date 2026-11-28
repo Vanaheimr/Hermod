@@ -259,6 +259,12 @@ override of `AuthenticateAsync` can know those of the server it is routed from.
 
 A refusal comes back as `SshWebSocketException`, with the HTTP status it was given.
 
+`SshWebSocketClient.Like(client, url)` goes where an existing WebSocket client goes, and in the same
+way. It takes that client's HTTP authentication or one-time password, its client certificates, its
+validator and key pins, its proxy and its timeouts. A station opens its tunnel like this, to the
+server it speaks OCPP with. It works for the same origin only: a URL of another scheme, host or port
+is refused, so the station's credentials are never sent elsewhere.
+
 Where only a forward proxy gets out, `SshWebSocketClient` is given it (`Proxy:`). The WebSocket is
 then opened in a `CONNECT` tunnel through the proxy. Who is connecting is said to the proxy in
 `Proxy-Authorization`, in the same ways as to the endpoint:
