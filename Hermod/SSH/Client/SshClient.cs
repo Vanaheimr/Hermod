@@ -433,7 +433,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Client
             if (Options.ProxyJump.Count > 0)
                 throw new ArgumentException("SSH over WebSocket goes through no jump host.", nameof(Options));
 
-            return Connect(async connecting => await WebSocket.ConnectAsync(connecting).ConfigureAwait(false),
+            return Connect(async connecting => await WebSocket.OpenAsync(connecting).ConfigureAwait(false),
                            WebSocket.RemoteURL.ToString(),
                            Options,
                            null,

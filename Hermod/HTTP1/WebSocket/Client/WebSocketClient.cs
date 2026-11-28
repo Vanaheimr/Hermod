@@ -215,6 +215,20 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
         public String?                                                         TOTPLogin                                 { get; set; }
 
         /// <summary>
+        /// The optional forward proxy the WebSocket is opened through: asked
+        /// with CONNECT for a tunnel to the server, with Proxy-Authorization
+        /// where it was given an authentication or a one-time password. The
+        /// TLS to the server, and the HTTP/1.1 or HTTP/2 the WebSocket is
+        /// opened over, run inside the tunnel. HTTP/3 does not, as its QUIC
+        /// is no TCP connection a CONNECT could carry.
+        /// </summary>
+        public HTTPProxy?                                                      Proxy
+        {
+            get => ForwardProxy;
+            set => ForwardProxy = value;
+        }
+
+        /// <summary>
         /// The HTTP user agent identification.
         /// </summary>
         public String                                                          HTTPUserAgent                             { get; }
@@ -1093,7 +1107,9 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             #region Over HTTP/3, where the server is left the choice and said it is reached over it (Alt-Svc)
 
+            // Not through a proxy, which tunnels TCP alone.
             if (over == WebSocketHTTPVersion.Auto &&
+                Proxy is null                     &&
                 WebSocketAlternativeServices.TryGetHTTP3(RemoteURL, out var http3Port))
             {
                 try
@@ -1127,7 +1143,15 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
 
             var connectionResult = await ReconnectAsync(CancellationToken.None).ConfigureAwait(false);
             if (connectionResult.IsFailure)
+            {
+
+                // With what the proxy answered, where it answered.
+                if (ProxyFailure is HTTPProxyException proxyFailure)
+                    throw proxyFailure;
+
                 throw new Exception(connectionResult.Errors.Select(error => error.ToString()).AggregateWith(", "));
+
+            }
 
             HTTPStream = ActiveStream;
 
@@ -1707,6 +1731,13 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
             // as it was configured is not sent in some other way.
             if (WhyTheTOTPCannotBeSent() is String why)
                 throw new InvalidOperationException(why);
+
+            // Nor through a proxy that cannot be connected through as configured.
+            if (Proxy?.WhyItCannotBeUsed() is String whyNotThroughTheProxy)
+                throw new InvalidOperationException(whyNotThroughTheProxy);
+
+            if (Proxy is not null && WebSocketOver == WebSocketHTTPVersion.HTTP3)
+                throw new InvalidOperationException($"This WebSocket is to be opened over HTTP/3 and nothing else, and the proxy {Proxy} tunnels TCP, which QUIC is not.");
 
             RequestTimeout ??= this.RequestTimeout;
 
@@ -2645,6 +2676,33 @@ namespace org.GraphDefined.Vanaheimr.Hermod.WebSocket
                                                       new JProperty("timeout",     (Int32) hte.Timeout.TotalMilliseconds),
                                                       new JProperty("message",     hte.Message),
                                                       new JProperty("stackTrace",  hte.StackTrace)
+                                                  ).ToUTF8Bytes();
+
+                        httpResponse            = failure;
+
+                        #endregion
+
+                        lastFailureResponse = httpResponse;
+
+                        await CloseTransport().ConfigureAwait(false);
+                        HTTPStream = null;
+
+                    }
+                    catch (HTTPProxyException proxyFailure)
+                    {
+
+                        #region Create a HTTP response for the proxy's refusal...
+
+                        // What the proxy answered - 407 where it was not told
+                        // who is connecting, or not believed -, and 502 where it
+                        // was not reached as configured or answered nothing.
+                        var failure             = FailureResponse(httpRequest, proxyFailure.HTTPStatusCode ?? HTTPStatusCode.BadGateway);
+
+                        failure.ContentType     = HTTPContentType.Application.JSON_UTF8;
+                        failure.Content         = JSONObject.Create(
+                                                      new JProperty("message",            proxyFailure.Message),
+                                                      new JProperty("proxy",              Proxy?.ToString()),
+                                                      new JProperty("proxyAuthenticate",  new JArray(proxyFailure.ProxyAuthenticate))
                                                   ).ToUTF8Bytes();
 
                         httpResponse            = failure;

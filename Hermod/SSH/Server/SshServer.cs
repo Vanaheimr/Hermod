@@ -526,7 +526,7 @@ namespace org.GraphDefined.Vanaheimr.Hermod.SSH.Server
                                      CancellationToken   CancellationToken = default)
         {
 
-            var pipe = await WebSocket.ConnectAsync(CancellationToken).ConfigureAwait(false);
+            var pipe = await WebSocket.OpenAsync(CancellationToken).ConfigureAwait(false);
 
             await ServeAsync(pipe, pipe.RemoteSocket, pipe.LocalSocket, CancellationToken).ConfigureAwait(false);
 
